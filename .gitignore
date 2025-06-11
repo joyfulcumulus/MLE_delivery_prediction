@@ -192,3 +192,13 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# data
+*.csv
+
+# mac
+.DS_Store
+*.parquet/
+
+# trash
+*.Trash*
