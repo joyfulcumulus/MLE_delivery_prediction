@@ -47,9 +47,9 @@ def _read_write_bronze(csv_path: str,
     
     return df
 
-# Process Olist datasets and save as bronze tables ------------------------------------------------------------
+# Process Olist Datasets and save as Bronze Tables ------------------------------------------------------------
 
-# Process Olist customers dataset and save as bronze table
+# Process Customers
 def process_olist_customers_bronze(bronze_root: str, spark):
     return _read_write_bronze(
         "data/olist_customers_dataset.csv",
@@ -58,7 +58,7 @@ def process_olist_customers_bronze(bronze_root: str, spark):
         spark)
 # -------------------------------------------------------------------------------------------------------------
 
-# Process Olist geolocation dataset and save as bronze table
+# Process Geolocation
 def process_olist_geolocation_bronze(bronze_root: str, spark):
     return _read_write_bronze(
         "data/olist_geolocation_dataset.csv",
@@ -67,7 +67,7 @@ def process_olist_geolocation_bronze(bronze_root: str, spark):
         spark)
 # -------------------------------------------------------------------------------------------------------------
 
-# Process Olist order items dataset and save as bronze table
+# Process Order_Items
 def process_olist_order_items_bronze(bronze_root: str, spark):
     return _read_write_bronze(
         "data/olist_order_items_dataset.csv",
@@ -76,7 +76,7 @@ def process_olist_order_items_bronze(bronze_root: str, spark):
         spark)
 # -------------------------------------------------------------------------------------------------------------
 
-# Process Olist order payments dataset and save as bronze table
+# Process Order_Payments
 def process_olist_order_payments_bronze(bronze_root: str, spark):
     return _read_write_bronze(
         "data/olist_order_payments_dataset.csv",
@@ -85,7 +85,7 @@ def process_olist_order_payments_bronze(bronze_root: str, spark):
         spark)
 # -------------------------------------------------------------------------------------------------------------
 
-# Process Olist order reviews dataset and save as bronze table
+# Process Order_Reviews
 def process_olist_order_reviews_bronze(bronze_root: str, spark):
     return _read_write_bronze(
         "data/olist_order_reviews_dataset.csv",
@@ -94,6 +94,7 @@ def process_olist_order_reviews_bronze(bronze_root: str, spark):
         spark)
 # -------------------------------------------------------------------------------------------------------------
 
+# Process Orders datasets
 def process_olist_orders_bronze(bronze_root, spark):
     # Read source data
     df = spark.read.csv("data/olist_orders_dataset.csv", header=True, inferSchema=True)
@@ -145,10 +146,9 @@ def process_olist_orders_bronze(bronze_root, spark):
         print(f"Saved to: {final_filepath}")
     
     return df
-
 # -------------------------------------------------------------------------------------------------------------
 
-# Process Olist datasets and save as bronze tables 
+# Process Products
 def process_olist_products_bronze(bronze_root: str, spark):
     return _read_write_bronze(
         "data/olist_products_dataset.csv",
@@ -157,7 +157,7 @@ def process_olist_products_bronze(bronze_root: str, spark):
         spark)
 # -------------------------------------------------------------------------------------------------------------
 
-# Process Olist sellers and product category translation datasets and save as bronze tables
+# Process Sellers
 def process_olist_sellers_bronze(bronze_root: str, spark):
     return _read_write_bronze(
         "data/olist_sellers_dataset.csv",
@@ -166,7 +166,7 @@ def process_olist_sellers_bronze(bronze_root: str, spark):
         spark)
 # -------------------------------------------------------------------------------------------------------------
 
-# Process product category translation dataset and save as bronze table
+# Process Product_Category_Translation
 def process_product_cat_translation_bronze(bronze_root: str, spark):
     return _read_write_bronze(
         "data/product_category_name_translation.csv",
