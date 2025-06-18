@@ -77,55 +77,37 @@ def process_olist_order_items_bronze(bronze_root: str, spark):
 # -------------------------------------------------------------------------------------------------------------
 
 # Process Order_Payments
-def process_olist_order_payments_bronze(bronze_root: str, spark):
-    return _read_write_bronze(
-        "data/olist_order_payments_dataset.csv",
-        os.path.join(bronze_root, "order_payments"),
-        "bronze_olist_order_payments",
-        spark)
-# -------------------------------------------------------------------------------------------------------------
-
-# Process Order_Reviews
-def process_olist_order_reviews_bronze(bronze_root: str, spark):
-    return _read_write_bronze(
-        "data/olist_order_reviews_dataset.csv",
-        os.path.join(bronze_root, "order_reviews"),
-        "bronze_olist_order_reviews",
-        spark)
-# -------------------------------------------------------------------------------------------------------------
-
-# Process Orders datasets
 def process_olist_orders_bronze(bronze_root, spark):
     # Read source data
     df = spark.read.csv("data/olist_orders_dataset.csv", header=True, inferSchema=True)
     
-    # Convert timestamp and create snapshot_date as MM_yyyy string
+    # Convert timestamp and create snapshot_date as dd_MM_yyyy string
     df = df.withColumn("order_purchase_timestamp", col("order_purchase_timestamp").cast("timestamp"))
-    df = df.withColumn("snapshot_date", date_format(col("order_purchase_timestamp"), "MM_yyyy"))
+    df = df.withColumn("snapshot_date", date_format(col("order_purchase_timestamp"), "dd_MM_yyyy"))
     
-    # Extract distinct months (as strings)
-    months = df.select("snapshot_date").distinct().collect()
-    month_list = [row.snapshot_date for row in months]
+    # Extract distinct days (as strings)
+    days = df.select("snapshot_date").distinct().collect()
+    day_list = [row.snapshot_date for row in days]
     
     # Create output directory
     output_path = os.path.join(bronze_root, "orders")
     os.makedirs(output_path, exist_ok=True)
     
-    for month_str in month_list:
-        # Filter data for current month
-        monthly_df = df.filter(col("snapshot_date") == month_str)
+    for day_str in day_list:
+        # Filter data for current day
+        daily_df = df.filter(col("snapshot_date") == day_str)
         
-        # Extract year and month from the string
-        month_part, year_part = month_str.split('_')
-        filename = f"bronze_olist_orders_{year_part}_{month_part}.csv"
+        # Extract day, month, and year from the string
+        day_part, month_part, year_part = day_str.split('_')
+        filename = f"bronze_olist_orders_{day_part}_{month_part}_{year_part}.csv"
         final_filepath = os.path.join(output_path, filename)
         
         # Create temporary directory
-        temp_dir = os.path.join(output_path, f"temp_{year_part}_{month_part}")
+        temp_dir = os.path.join(output_path, f"temp_{day_str}")
         os.makedirs(temp_dir, exist_ok=True)
         
         # Write to temporary directory
-        monthly_df.coalesce(1).write.csv(temp_dir, mode="overwrite", header=True)
+        daily_df.coalesce(1).write.csv(temp_dir, mode="overwrite", header=True)
         
         # Find the generated CSV file
         csv_files = glob.glob(os.path.join(temp_dir, "*.csv"))
@@ -141,8 +123,8 @@ def process_olist_orders_bronze(bronze_root, spark):
         shutil.rmtree(temp_dir)
         
         # Print status
-        count = monthly_df.count()
-        print(f"Month {year_part}-{month_part}: {count} rows")
+        count = daily_df.count()
+        print(f"Day {day_str}: {count} rows")
         print(f"Saved to: {final_filepath}")
     
     return df
