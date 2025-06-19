@@ -16,7 +16,7 @@ with DAG(
     description='data pipeline run once a day',
     schedule_interval='0 9 * * *',  # At 00:00 on day-of-month 1
     start_date=datetime(2016, 9, 4), #2016-09-04 min date
-    end_date=datetime(2016, 9, 7), #'2018-09-03' max date
+    end_date=datetime(2017, 12, 3), #'2018-09-03' max date
     catchup=True,
 ) as dag:
 
