@@ -57,7 +57,7 @@ def process_feature_gold_table(snapshot_date_str, gold_directory,
     df = df.drop('product_id', 'order_id', 'customer_id', 'seller_id', 'order_purchase_timestamp')
     
     # Save gold table - output only for the given snapshot date
-    partition_name = f"gold_feature_store_{snapshot_date_str.replace('-','_')}.parquet"
+    partition_name = f"{snapshot_date_str.replace('-','_')}.parquet"
     filepath = os.path.join(gold_directory + "/feature_store/" + partition_name)
     df.write.mode("overwrite").parquet(filepath)
     print('saved to:', filepath)
