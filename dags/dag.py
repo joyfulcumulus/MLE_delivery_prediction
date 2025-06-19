@@ -40,9 +40,15 @@ with DAG(
         ),
     )
     label_store_completed = DummyOperator(task_id="label_store_completed")
-    
-    gold_feature_store= DummyOperator(task_id="run_gold_feature_store")
 
+    gold_feature_store = BashOperator(
+        task_id='run_gold_feature_store',
+        bash_command=(
+            'cd /opt/airflow/scripts && '
+            'python3 gold_feature_store.py '
+            '--startdate "{{ ds }}" '
+        ),
+    )
     feature_store_completed = DummyOperator(task_id="feature_store_completed")
 
     # Define task dependencies to run scripts sequentially
