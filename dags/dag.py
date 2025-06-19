@@ -13,7 +13,7 @@ default_args = {
 with DAG(
     'dag',
     default_args=default_args,
-    description='data pipeline run once a month',
+    description='data pipeline run once a day',
     schedule_interval='0 9 * * *',  # At 00:00 on day-of-month 1
     start_date=datetime(2016, 9, 4), #2016-09-04 min date
     end_date=datetime(2016, 9, 7), #'2018-09-03' max date
