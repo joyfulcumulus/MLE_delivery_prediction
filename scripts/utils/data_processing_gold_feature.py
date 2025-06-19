@@ -54,7 +54,7 @@ def process_feature_gold_table(snapshot_date_str, gold_directory,
         F.col('total_weight_g') / F.col('total_volume_cm3')
     )
 
-    df = df.drop('product_id', 'order_id', 'customer_id', 'seller_id', 'order_purchase_timestamp')
+    df = df.drop('product_id', 'customer_id', 'seller_id', 'order_purchase_timestamp')
     
     # Save gold table - output only for the given snapshot date
     partition_name = f"{snapshot_date_str.replace('-','_')}.parquet"
