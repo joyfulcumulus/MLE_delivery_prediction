@@ -47,22 +47,24 @@ if __name__ == "__main__":
     if not os.path.exists(gold_feature_directory):
         os.makedirs(gold_feature_directory)
 
-    # cust_df = read_silver_table('orders', silver_directory, spark)
-    # geo_df = read_silver_table('orders', silver_directory, spark)
+    cust_df = read_silver_table('customers', silver_directory, spark)
+    geo_df = read_silver_table('geolocation', silver_directory, spark)
     # items_df = read_silver_table('orders', silver_directory, spark)\
     # # to be changed
     # logistic_df = read_silver_table('orders', silver_directory, spark)
     # prod_df = read_silver_table('orders', silver_directory, spark)
-    # sellers_df = read_silver_table('orders', silver_directory, spark)
+    sellers_df = read_silver_table('sellers', silver_directory, spark)
     orders_df = read_silver_table('orders', silver_directory, spark)
 
     # Build gold tables
-    y = process_feature_gold_table(snapshot_date_str, silver_directory, gold_directory, orders_df, spark)
+    y = process_feature_gold_table(snapshot_date_str, gold_directory, cust_df, geo_df, sellers_df, orders_df, spark)
+    # def process_feature_gold_table(snapshot_date_str, gold_directory, 
+#                           cust_df, geo_df, items_df, logistic_df, prod_df, sellers_df, orders_df, spark):
 
     # Check for the rows ingested
     y_pdf = y.toPandas()
     y_count = y_pdf.shape[0]
-    print(f"Number of rows in label store: {y_pdf.shape[0]}")
+    print(f"Number of rows in feature store: {y_pdf.shape[0]}")
 
     print(f"Gold feature tables built successfully from start date: {snapshot_date_str}")
 
