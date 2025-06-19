@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process snapshot date from Airflow')
     parser.add_argument('--startdate', type=str, required=True, help='Snapshot date in YYYY-MM-DD format')
     args = parser.parse_args()
-    snapshot_date_str = [args.startdate]
+    snapshot_date_str = args.startdate
 
     
     ############################

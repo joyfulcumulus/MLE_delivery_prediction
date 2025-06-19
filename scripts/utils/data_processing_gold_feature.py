@@ -25,7 +25,7 @@ def process_feature_gold_table(snapshot_date_str, gold_directory,
         'order_purchase_timestamp',
         F.to_date(col('order_purchase_timestamp'))
     )
-    df = orders_df.filter(col('order_purchase_timestamp') == F.lit(snapshot_date_str))
+    df = orders_df.filter(col('order_purchase_timestamp') == snapshot_date_str)
     df = df.select('order_id', 'customer_id', 'order_status', 'order_purchase_timestamp')
 
     # join items_df
