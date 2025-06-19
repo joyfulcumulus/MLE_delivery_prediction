@@ -58,16 +58,30 @@ with DAG(
     # --- model inference ---
     model_inference_start = DummyOperator(task_id="model_inference_start")
 
-    model_1_inference = DummyOperator(task_id="model_1_inference")
+    model_reg_inference = BashOperator(task_id='model_reg_inference',
+        bash_command=(
+            'cd /opt/airflow/scripts &&'
+            'python3 model_inference.py '
+            '--snapshotdate "{{ ds }}" '
+            '--modelname credit_model_reg_2017_12_04.pkl'
+        ),
+    )
 
-    model_2_inference = DummyOperator(task_id="model_2_inference")
+    model_xgb_inference = BashOperator(task_id='model_xgb_inference',
+        bash_command=(
+            'cd /opt/airflow/scripts &&'
+            'python3 model_inference.py '
+            '--snapshotdate "{{ ds }}" '
+            '--modelname credit_model_xgb_2017_12_04.pkl'
+        ),
+    )
 
     model_inference_completed = DummyOperator(task_id="model_inference_completed")
     
     # Define task dependencies to run scripts sequentially
     feature_store_completed >> model_inference_start
-    model_inference_start >> model_1_inference >> model_inference_completed
-    model_inference_start >> model_2_inference >> model_inference_completed
+    model_inference_start >> model_reg_inference >> model_inference_completed
+    model_inference_start >> model_xgb_inference >> model_inference_completed
 
 
     # --- model monitoring ---
