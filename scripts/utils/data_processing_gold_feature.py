@@ -17,60 +17,45 @@ from pyspark.sql.types import DoubleType
 import math
 
 
-def process_feature_gold_table(snapshot_date_str, gold_directory, cust_df, geo_df, sellers_df, orders_df, spark):
-# def process_feature_gold_table(snapshot_date_str, gold_directory, 
-#                           cust_df, geo_df, items_df, logistic_df, prod_df, sellers_df, orders_df, spark):
-  
+def process_feature_gold_table(snapshot_date_str, gold_directory, 
+                          cust_df, geo_df, items_df, prod_df, sellers_df, orders_df, spark):
+
+    # orders_df
     orders_df = orders_df.withColumn(
         'order_purchase_timestamp',
         F.to_date(col('order_purchase_timestamp'))
     )
-    
-    # define distance between customers and sellers
-    
-    def haversine(lat1, lon1, lat2, lon2):
-        R = 6371
-        phi1 = math.radians(lat1)
-        phi2 = math.radians(lat2)
-        dphi = math.radians(lat2 - lat1)
-        dlambda = math.radians(lon2 - lon1)
-        a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-        return R * c
+    df = orders_df.filter(col('order_purchase_timestamp') == F.lit(snapshot_date_str))
+    df = df.select('order_id', 'customer_id', 'order_status', 'order_purchase_timestamp')
 
-    haversine_udf = udf(haversine, DoubleType())
-    
-    order_cust_seller = orders_df.select('order_id', 'customer_id', 'seller_id')
+    # join items_df
+    df = df.join(items_df, on='order_id', how='left')
+    df = df.drop('shipping_limit_date')
 
-    cust_zip = cust_df.select(col('customer_id'), col('zipprefix').alias('cust_zipprefix'))
-    seller_zip = sellers_df.select(col('seller_id'), col('zipprefix').alias('seller_zipprefix'))
+    # join products_df
+    df = df.join(prod_df, on='product_id', how='left')
 
-    geo_cust = geo_df.select(col('zipprefix').alias('cust_zipprefix'), 
-                             col('lat').alias('cust_lat'), col('lon').alias('cust_lon'))
-    geo_seller = geo_df.select(col('zipprefix').alias('seller_zipprefix'), 
-                               col('lat').alias('seller_lat'), col('lon').alias('seller_lon'))
-
-    df = order_cust_seller \
-        .join(cust_zip, on='customer_id', how='left') \
-        .join(seller_zip, on='seller_id', how='left') \
-        .join(geo_cust, on='cust_zipprefix', how='left') \
-        .join(geo_seller, on='seller_zipprefix', how='left')
+    # group orders by order_id
+    df = df.groupBy('order_id').agg(
+        F.first('customer_id').alias('customer_id'),
+        F.first('product_id').alias('product_id'),
+        F.first('seller_id').alias('seller_id'),
+        F.count('*').alias('total_qty'),
+        F.sum('price').alias('total_price'),
+        F.max('freight_value').alias('total_freight_value'),
+        F.sum('product_weight_g').alias('total_weight_g'),
+        F.sum(F.col('product_length_cm') * F.col('product_height_cm') * F.col('product_width_cm')).alias('total_volume_cm3'),
+        F.first('order_purchase_timestamp').alias('order_purchase_timestamp'),
+        F.first('order_status').alias('order_status')
+    )
 
     df = df.withColumn(
-        'customer_seller_distance_km',
-        haversine_udf('cust_lat', 'cust_lon', 'seller_lat', 'seller_lon')
+        'total_density',
+        F.col('total_weight_g') / F.col('total_volume_cm3')
     )
 
-    filtered_orders_df = orders_df.filter(col('order_purchase_timestamp') == snapshot_date_str)
-    df = filtered_orders_df.join(
-        df.select('order_id', 'customer_seller_distance_km'),
-        on='order_id',
-        how='left'
-    )
+    df = df.drop('product_id', 'order_id', 'customer_id', 'seller_id', 'order_purchase_timestamp')
     
-    # Filter orders_df to only include rows where order_purchase_timestamp matches snapshot_date_str
-    df = orders_df.filter(col('order_purchase_timestamp') == snapshot_date_str)[['customer_id', 'order_purchase_timestamp']]
-
     # Save gold table - output only for the given snapshot date
     partition_name = f"gold_feature_store_{snapshot_date_str.replace('-','_')}.parquet"
     filepath = os.path.join(gold_directory + "/feature_store/" + partition_name)

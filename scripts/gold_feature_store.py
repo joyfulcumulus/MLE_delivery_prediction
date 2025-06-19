@@ -49,17 +49,18 @@ if __name__ == "__main__":
 
     cust_df = read_silver_table('customers', silver_directory, spark)
     geo_df = read_silver_table('geolocation', silver_directory, spark)
-    # items_df = read_silver_table('orders', silver_directory, spark)\
+    items_df = read_silver_table('order_items', silver_directory, spark)\
     # # to be changed
-    # logistic_df = read_silver_table('orders', silver_directory, spark)
-    # prod_df = read_silver_table('orders', silver_directory, spark)
+    # logistic_df = read_silver_table('order_logistics', silver_directory, spark)
+    prod_df = read_silver_table('products', silver_directory, spark)
     sellers_df = read_silver_table('sellers', silver_directory, spark)
     orders_df = read_silver_table('orders', silver_directory, spark)
 
     # Build gold tables
-    y = process_feature_gold_table(snapshot_date_str, gold_directory, cust_df, geo_df, sellers_df, orders_df, spark)
+    y = process_feature_gold_table(snapshot_date_str, gold_directory, 
+                          cust_df, geo_df, items_df, prod_df, sellers_df, orders_df, spark)
     # def process_feature_gold_table(snapshot_date_str, gold_directory, 
-#                           cust_df, geo_df, items_df, logistic_df, prod_df, sellers_df, orders_df, spark):
+#                           cust_df, geo_df, items_df, logistic_df, prod_df, sellers_df, orders_df, spark)
 
     # Check for the rows ingested
     y_pdf = y.toPandas()
