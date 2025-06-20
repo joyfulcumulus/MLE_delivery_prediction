@@ -48,38 +48,35 @@ def main(snapshotdate, modelname):
     )
     order_ids_to_drop = [row["order_id"] for row in rows_with_nulls.select("order_id").distinct().collect()]
     features_store_sdf = features_store_sdf.filter(~col("order_id").isin(order_ids_to_drop))
-    
-    #Extract relevant features
     features_store_sdf = features_store_sdf.filter(col("order_status") == "delivered")
     features_sdf = features_store_sdf.toPandas()
     print("extracted features_sdf", features_sdf.count(), config["snapshot_date"])
-
-    # --- preprocess data for modeling ---
-    # prepare X_inference
-    features_pdf = features_sdf.drop(columns=['order_id','order_status']).values
     
-    # apply transformer - standard scaler
-    transformer_stdscaler = model_artefact["preprocessing_transformers"]["stdscaler"]
-    X_inference = transformer_stdscaler.transform(features_pdf)
-    
-    print('X_inference', X_inference.shape[0])
-
-
-    # --- model prediction inference ---
-    # load model
-    model = model_artefact["model"]
-    threshold = model_artefact['threshold']
-    
-    # predict model
-    y_inference = model.predict_proba(X_inference)[:, 1]
-    
-    # prepare output
-    y_inference_pdf = features_sdf[["order_id","order_status",]].copy()
-    y_inference_pdf["model_predictions"] = y_inference.round(4)
-    y_inference_pdf["model_predictions"] = (y_inference_pdf["model_predictions"] > threshold).astype(int)
-    y_inference_pdf["snapshot_date"] = snapshotdate
-    y_inference_pdf["model_name"] = config["model_name"]
-    row_count = y_inference_pdf.shape[0]
+    if features_sdf.empty:
+        y_inference_pdf = pd.DataFrame(columns=['order_id', 'order_status', 'model_name', 'model_predictions'])
+    else: 
+        # prepare X_inference
+        features_pdf = features_sdf.drop(columns=['order_id', 'order_status']).values
+        # apply transformer - standard scaler
+        transformer_stdscaler = model_artefact["preprocessing_transformers"]["stdscaler"]
+        X_inference = transformer_stdscaler.transform(features_pdf)
+        print('X_inference', X_inference.shape[0])
+ 
+        # --- model prediction inference ---
+        # load model
+        model = model_artefact["model"]
+        threshold = model_artefact['threshold']
+        
+        # predict model
+        y_inference = model.predict_proba(X_inference)[:, 1]
+        
+        # prepare output
+        y_inference_pdf = features_sdf[["order_id","order_status",]].copy()
+        y_inference_pdf["model_predictions"] = y_inference.round(4)
+        y_inference_pdf["model_predictions"] = (y_inference_pdf["model_predictions"] > threshold).astype(int)
+        y_inference_pdf["snapshot_date"] = snapshotdate
+        y_inference_pdf["model_name"] = config["model_name"]
+        row_count = y_inference_pdf.shape[0]
 
     # --- save model inference to datamart gold table ---
     # create bronze datalake
@@ -92,6 +89,11 @@ def main(snapshotdate, modelname):
     # save gold table - IRL connect to database to write
     partition_name = config["model_name"][:-4] + "_predictions_" + config["snapshot_date_str"].replace('-','_') + '.parquet'
     filepath = gold_directory + partition_name
+    if y_inference_pdf.empty:
+        print("No inference data to write. Skipping write step.")
+        spark.stop()
+        return
+
     spark.createDataFrame(y_inference_pdf).write.mode("overwrite").parquet(filepath)
     # df.toPandas().to_parquet(filepath,
     #           compression='gzip')
