@@ -50,7 +50,7 @@ def main(snapshotdate, modelname):
     features_store_sdf = features_store_sdf.filter(~col("order_id").isin(order_ids_to_drop))
     
     #Extract relevant features
-    features_store_sdf = features_store_sdf.filter(col("order_status") != "delivered")
+    features_store_sdf = features_store_sdf.filter(col("order_status") == "delivered")
     features_sdf = features_store_sdf.toPandas()
     print("extracted features_sdf", features_sdf.count(), config["snapshot_date"])
 

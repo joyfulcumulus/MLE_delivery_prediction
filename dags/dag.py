@@ -16,7 +16,7 @@ with DAG(
     description='data pipeline run once a day',
     schedule_interval='0 9 * * *',  # At 00:00 on day-of-month 1
     start_date=datetime(2016, 9, 4), #2016-09-04 min date
-    end_date=datetime(2017, 12, 3), #'2018-09-03' max date
+    end_date=datetime(2016, 9, 14), #'2018-09-03' max date
     catchup=True,
 ) as dag:
 
@@ -63,7 +63,7 @@ with DAG(
             'cd /opt/airflow/scripts &&'
             'python3 model_inference.py '
             '--snapshotdate "{{ ds }}" '
-            '--modelname credit_model_reg_2017_12_04.pkl'
+            '--modelname reg_2017_12_04.pkl'
         ),
     )
 
@@ -72,7 +72,7 @@ with DAG(
             'cd /opt/airflow/scripts &&'
             'python3 model_inference.py '
             '--snapshotdate "{{ ds }}" '
-            '--modelname credit_model_xgb_2017_12_04.pkl'
+            '--modelname xgb_2017_12_04.pkl'
         ),
     )
 
@@ -87,13 +87,26 @@ with DAG(
     # --- model monitoring ---
     model_monitor_start = DummyOperator(task_id="model_monitor_start")
 
-    model_1_monitor = DummyOperator(task_id="model_1_monitor")
+    model_xgb_monitor = BashOperator(task_id='model_xgb_monitor',
+        bash_command=(
+            'cd /opt/airflow/scripts &&'
+            'python3 model_monitoring.py '
+            '--snapshotdate "{{ ds }}" '
+            '--model xgb'
+        ),
+    )
 
-    model_2_monitor = DummyOperator(task_id="model_2_monitor")
-
+    model_reg_monitor = BashOperator(task_id='model_reg_monitor',
+        bash_command=(
+            'cd /opt/airflow/scripts &&'
+            'python3 model_monitoring.py '
+            '--snapshotdate "{{ ds }}" '
+            '--model reg'
+        ),
+    )
     model_monitor_completed = DummyOperator(task_id="model_monitor_completed")
     
     # Define task dependencies to run scripts sequentially
     model_inference_completed >> model_monitor_start
-    model_monitor_start >> model_1_monitor >> model_monitor_completed
-    model_monitor_start >> model_2_monitor >> model_monitor_completed
+    model_monitor_start >> model_xgb_monitor >> model_monitor_completed
+    model_monitor_start >> model_reg_monitor >> model_monitor_completed
