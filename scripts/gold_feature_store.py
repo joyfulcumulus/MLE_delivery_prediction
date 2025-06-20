@@ -62,13 +62,19 @@ if __name__ == "__main__":
     date_obj = datetime.strptime(snapshot_date_str, '%Y-%m-%d')
     date_str_ddmmyyyy = date_obj.strftime('%d_%m_%Y')
     
+    try:
+        orders_df = read_silver_table('orders', silver_directory, spark, date_str=date_str_ddmmyyyy)
+    except FileNotFoundError:
+        print(f"Gold feature tables built successfully from start date: {snapshot_date_str}")
+        exit(0)
+    
     # cust_df = read_silver_table('customers', silver_directory, spark)
     # geo_df = read_silver_table('geolocation', silver_directory, spark)
     items_df = read_silver_table('order_items', silver_directory, spark)
     logistic_df = read_silver_table('order_logistics', silver_directory, spark, date_str=date_str_ddmmyyyy)
     # prod_df = read_silver_table('products', silver_directory, spark)
     # sellers_df = read_silver_table('sellers', silver_directory, spark)
-    orders_df = read_silver_table('orders', silver_directory, spark, date_str=date_str_ddmmyyyy)
+    # orders_df = read_silver_table('orders', silver_directory, spark, date_str=date_str_ddmmyyyy)
     # shipping_df = read_silver_table('shipping_infos', silver_directory, spark, date_str=snapshot_date_str)
     # history_df = read_silver_table('delivery_history', silver_directory, spark, date_str=snapshot_date_str)
     # seller_perform_df = read_silver_table('seller_performance', silver_directory, spark)

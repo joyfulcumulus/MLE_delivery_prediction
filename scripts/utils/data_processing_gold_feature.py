@@ -24,7 +24,7 @@ def process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logi
 #                       cust_df, geo_df, items_df, logistic_df, prod_df, sellers_df, orders_df, 
 #                       shipping_df, history_df, seller_perform_df, concentration_df, spark):
 
-    # orders_dff
+    # orders_df
     df = orders_df
     df = df.select('order_id', 'customer_id', 'order_status')
 
@@ -35,7 +35,7 @@ def process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logi
     
     # join logistic_df
     df = df.join(logistic_df, on='order_id', how='left')
-    df = df.drop('order_id', 'order_purchase_timestamp', 'main_category', 'sub_category', 'snapshot_date')
+    df = df.drop('order_purchase_timestamp', 'main_category', 'sub_category', 'snapshot_date')
 
     
     # Save gold table - output only for the given snapshot date
