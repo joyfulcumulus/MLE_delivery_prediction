@@ -1,0 +1,2 @@
+order_id,customer_id,order_status,order_purchase_timestamp,order_approved_at,order_delivered_carrier_date,order_delivered_customer_date,order_estimated_delivery_date,snapshot_date
+392ed9afd714e3c74767d0c4d3e3f477,2823ffda607a2316375088e0d00005ec,canceled,2018-09-29T09:13:03.000Z,,,,2018-10-15T00:00:00.000Z,2018_09_29

@@ -81,9 +81,9 @@ def process_olist_orders_bronze(bronze_root, spark):
     # Read source data
     df = spark.read.csv("data/olist_orders_dataset.csv", header=True, inferSchema=True)
     
-    # Convert timestamp and create snapshot_date as dd_MM_yyyy string
+    # Convert timestamp and create snapshot_date as yyyy_mm_dd string
     df = df.withColumn("order_purchase_timestamp", col("order_purchase_timestamp").cast("timestamp"))
-    df = df.withColumn("snapshot_date", date_format(col("order_purchase_timestamp"), "dd_MM_yyyy"))
+    df = df.withColumn("snapshot_date", date_format(col("order_purchase_timestamp"), "yyyy_MM_dd"))
     
     # Extract distinct days (as strings)
     days = df.select("snapshot_date").distinct().collect()
