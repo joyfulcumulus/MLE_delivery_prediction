@@ -156,3 +156,16 @@ def process_product_cat_translation_bronze(bronze_root: str, spark):
         "bronze_product_category_translation",
         spark)
 # -------------------------------------------------------------------------------------------------------------
+
+# Process Order_Reviews
+def process_olist_order_reviews_bronze(bronze_root: str, spark):
+    """
+    Reads the olist order reviews CSV and writes it out as a bronze Parquet table.
+    """
+    return _read_write_bronze(
+        "data/olist_order_reviews_dataset.csv",
+        os.path.join(bronze_root, "order_reviews"),
+        "bronze_olist_order_reviews",
+        spark
+    )
+# -------------------------------------------------------------------------------------------------------------
