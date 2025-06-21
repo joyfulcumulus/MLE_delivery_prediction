@@ -72,16 +72,14 @@ if __name__ == "__main__":
     logistic_df = read_silver_table('order_logistics', silver_directory, spark, date_str=date_str_ddmmyyyy)
     orders_df = read_silver_table('orders', silver_directory, spark, date_str=date_str_ddmmyyyy)
     shipping_df = read_silver_table('shipping_infos', silver_directory, spark, date_str=date_str_ddmmyyyy)
-    # history_df = read_silver_table('delivery_history', silver_directory, spark, date_str=snapshot_date_str)
-    # seller_perform_df = read_silver_table('seller_performance', silver_directory, spark)
-    # concentration_df = read_silver_table('concentration', silver_directory, spark)
+    history_df = read_silver_table('delivery_history', silver_directory, spark, date_str=date_str_ddmmyyyy)
+    seller_perform_df = read_silver_table('seller_performance', silver_directory, spark, date_str=date_str_ddmmyyyy)
+    concentration_df = read_silver_table('concentration', silver_directory, spark)
     
         
     # Build gold tables
     y = process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logistic_df, 
-                                   orders_df, shipping_df, spark)
-    # process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logistic_df, 
-    #                            orders_df, shipping_df, history_df, seller_perform_df, concentration_df,spark)
+                               orders_df, shipping_df, history_df, seller_perform_df, concentration_df,spark)
 
     # Check for the rows ingested
     y_pdf = y.toPandas()
