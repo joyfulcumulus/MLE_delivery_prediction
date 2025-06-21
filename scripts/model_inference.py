@@ -54,9 +54,11 @@ def main(snapshotdate, modelname):
     
     if features_sdf.empty:
         y_inference_pdf = pd.DataFrame(columns=['order_id', 'order_status', 'model_name', 'model_predictions'])
+        print('y_inference', y_inference_pdf.shape[0])
     else: 
         # prepare X_inference
-        features_pdf = features_sdf.drop(columns=['order_id', 'order_status']).values
+        features_pdf = features_sdf.select_dtypes(include='number')
+        #features_pdf = features_sdf.drop(columns=['order_id', 'order_status']).values
         # apply transformer - standard scaler
         transformer_stdscaler = model_artefact["preprocessing_transformers"]["stdscaler"]
         X_inference = transformer_stdscaler.transform(features_pdf)
