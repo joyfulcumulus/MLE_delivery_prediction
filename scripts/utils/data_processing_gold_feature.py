@@ -18,9 +18,7 @@ from pyspark.sql.types import DoubleType
 import math
 
 def process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logistic_df, 
-                                   orders_df, shipping_df, spark):
-# def process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logistic_df, 
-#                                    orders_df, shipping_df, history_df, seller_perform_df, concentration_df,spark):
+                                   orders_df, shipping_df, history_df, seller_perform_df, concentration_df,spark):
 
     # orders_df
     df = orders_df
@@ -41,18 +39,15 @@ def process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logi
        'customer_city', 'customer_state', 'customer_lat', 'customer_lng',
        'seller_zip_code_prefix', 'seller_lat', 'seller_lng', 'same_zipcode')
     
-    # # join history_df
-    # df = df.join(history_df, on='order_id', how='left')
-    # df = df.drop('order_purchase_timestamp', 'approval_duration', 
-    #              'processing_duration', 'ship_duration', 'miss_delivery_sla')
+    # join history_df
+    df = df.join(history_df, on='order_id', how='left')
+    df = df.drop('order_purchase_timestamp', 'approval_duration', 
+                 'processing_duration', 'ship_duration', 'miss_delivery_sla', 'snapshot_date')
 
-    # # join seller_perform_df
-    # df = df.join(seller_perform_df, on='seller_id', how='left')
+    # join seller_perform_df
+    df = df.join(seller_perform_df, on='seller_id', how='left')
 
-    # # join concentration_df
-    # df = df.join(concentration_df, on='snapshot_date', how='left')
-    # df = df.drop('granularity_level', 'type')
-
+    # make new columns: day_of_week, season
     df = df.withColumn("date", to_date("snapshot_date", "yyyy-MM-dd"))
     # 1: Sunday
     df = df.withColumn("day_of_week", dayofweek("date"))
@@ -64,7 +59,12 @@ def process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logi
         .when(month("date").isin([1, 2, 3]), "Summer")
         .otherwise("Autumn")
     )
+    
+    # join concentration_df
+    df = df.join(concentration_df, on='snapshot_date', how='left')
+    df = df.drop('granularity_level', 'type', 'region', 'snapshot_date')
 
+    # drop unused columns
     df = df.drop('customer_id', 'product_id', 'seller_id', 'date', 'month')
     
     # Save gold table - output only for the given snapshot date
