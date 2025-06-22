@@ -35,7 +35,7 @@ def _read_write_bronze(csv_path: str,
     (df.write
        .mode("overwrite")
        .parquet(out_path))
-    print("saved bronze:", out_path)
+    print("----> saved bronze:", out_path)
     
     # Clean up extra files (_SUCCESS and .crc files)
     for file in glob.glob(os.path.join(out_path, "_SUCCESS")):
@@ -125,7 +125,7 @@ def process_olist_orders_bronze(bronze_root, spark):
         # Print status
         count = daily_df.count()
         print(f"Day {day_str}: {count} rows")
-        print(f"Saved to: {final_filepath}")
+        print(f"----------> Saved to: {final_filepath}")
     
     return df
 # -------------------------------------------------------------------------------------------------------------
