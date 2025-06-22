@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
+from airflow.operators.python import ShortCircuitOperator
 from datetime import datetime, timedelta
 
 default_args = {
@@ -84,29 +85,40 @@ with DAG(
     model_inference_start >> model_xgb_inference >> model_inference_completed
 
 
-    # # --- model monitoring ---
-    # model_monitor_start = DummyOperator(task_id="model_monitor_start")
+    # --- model monitoring ---
 
-    # model_xgb_monitor = BashOperator(task_id='model_xgb_monitor',
-    #     bash_command=(
-    #         'cd /opt/airflow/scripts &&'
-    #         'python3 model_monitoring.py '
-    #         '--snapshotdate "{{ ds }}" '
-    #         '--model xgb'
-    #     ),
-    # )
+    ######################################################################
+    #Trigger the next job automatically
+    ######################################################################
+    def is_last_run(execution_date_str):
+        return execution_date_str >= "2016-09-12"
 
-    # model_reg_monitor = BashOperator(task_id='model_reg_monitor',
-    #     bash_command=(
-    #         'cd /opt/airflow/scripts &&'
-    #         'python3 model_monitoring.py '
-    #         '--snapshotdate "{{ ds }}" '
-    #         '--model reg'
-    #     ),
-    # )
-    # model_monitor_completed = DummyOperator(task_id="model_monitor_completed")
+    check_hist_data_loaded = ShortCircuitOperator(
+        task_id="check_hist_data_loaded",
+        python_callable=is_last_run,
+        op_args=["{{ ds }}"]
+    )
+
+    model_xgb_monitor = BashOperator(task_id='model_xgb_monitor',
+        bash_command=(
+            'cd /opt/airflow/scripts &&'
+            'python3 model_monitoring.py '
+            '--snapshotdate "{{ ds }}" '
+            '--model xgb'
+        ),
+    )
+
+    model_reg_monitor = BashOperator(task_id='model_reg_monitor',
+        bash_command=(
+            'cd /opt/airflow/scripts &&'
+            'python3 model_monitoring.py '
+            '--snapshotdate "{{ ds }}" '
+            '--model reg'
+        ),
+    )
+    model_monitor_completed = DummyOperator(task_id="model_monitor_completed")
     
-    # # Define task dependencies to run scripts sequentially
-    # model_inference_completed >> model_monitor_start
-    # model_monitor_start >> model_xgb_monitor >> model_monitor_completed
-    # model_monitor_start >> model_reg_monitor >> model_monitor_completed
+    # Define task dependencies to run scripts sequentially
+    model_inference_completed >> check_hist_data_loaded
+    check_hist_data_loaded >> model_xgb_monitor >> model_monitor_completed
+    check_hist_data_loaded >> model_reg_monitor >> model_monitor_completed
