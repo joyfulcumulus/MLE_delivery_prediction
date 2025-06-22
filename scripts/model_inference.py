@@ -9,6 +9,9 @@ from dateutil.relativedelta import relativedelta
 import pprint
 import pyspark
 from functools import reduce
+from sklearn.preprocessing import OneHotEncoder
+
+
 import pyspark.sql.functions as F
 
 from pyspark.sql.functions import col
@@ -43,6 +46,7 @@ def main(snapshotdate, modelname):
     print("row_count for features:",features_store_sdf.count(),"\n")
     
     # Filter out NA
+    features_store_sdf = features_store_sdf.drop("avg_delay_rate","concentration","act_days_to_deliver","total_freight_value","avg_processing_time","same_state","total_volume_cm3","seller_city","seller_state")
     rows_with_nulls = features_store_sdf.filter(
         reduce(lambda a, b: a | b, (col(c).isNull() for c in features_store_sdf.columns))
     )
@@ -51,6 +55,13 @@ def main(snapshotdate, modelname):
     features_store_sdf = features_store_sdf.filter(col("order_status") == "delivered")
     features_sdf = features_store_sdf.toPandas()
     print("extracted features_sdf", features_sdf.count(), config["snapshot_date"])
+
+    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    #encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+    encoder.fit(features_sdf[['season']])  # Only fit on training data
+    encoded_feature = encoder.transform(features_sdf[['season']])
+    encoded_f = pd.DataFrame(encoded_feature, columns=encoder.get_feature_names_out(['season']), index=features_sdf.index)
+    features_sdf = pd.concat([features_sdf.drop(columns=['season']), encoded_f], axis=1)
     
     if features_sdf.empty:
         y_inference_pdf = pd.DataFrame(columns=['order_id', 'order_status', 'model_name', 'model_predictions'])
