@@ -32,7 +32,6 @@ with DAG(
         bash_command=(
             'cd /opt/airflow/scripts && '
             'python3 bronze_store.py '
-            '--startdate "{{ ds }}" '
         ),
     )
     bronze_store_completed = DummyOperator(task_id="bronze_store_completed")
