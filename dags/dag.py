@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 default_args = {
     'owner': 'airflow',
-    'depends_on_past': False,
+    'depends_on_past': True, # if job failed day before, cannot continue (ensures safety)
     'retries': 1,
     'retry_delay': timedelta(minutes=5),
 }
@@ -14,24 +14,42 @@ default_args = {
 with DAG(
     'dag',
     default_args=default_args,
-    description='data pipeline run once a day',
-    schedule_interval='0 9 * * *',  # At 00:00 on day-of-month 1
+    description='Delivery lateness prediction pipeline',
+    schedule_interval='0 9 * * *',  # At 09:00 AM on daily
     start_date=datetime(2016, 9, 4), #2016-09-04 min date
-    end_date=datetime(2017, 10, 4), # end_date=datetime(2017, 12, 3), #'2018-09-03' max date
+    end_date=datetime(2016, 10, 4), # end_date=datetime(2017, 12, 3), #'2018-09-03' max date
     catchup=True,
+    max_active_runs=1 # ensures no parallel processing. Will execute all steps for day 1 first, then move to day 2
 ) as dag:
 
-    #data pipeline
+    ###########################
+    #Data Processing
+    ###########################
+    data_processing_bronze_start = DummyOperator(task_id="data_processing_bronze_start")
+
+    data_processing_bronze_run = BashOperator(
+        task_id='data_processing_bronze_run',
+        bash_command=(
+            'cd /opt/airflow/scripts && '
+            'python3 data_processing_bronze.py '
+            '--startdate "{{ ds }}" '
+        ),
+    )
+    data_processing_bronze_completed = DummyOperator(task_id="data_processing_bronze_completed")
+
+    data_processing_silver_run = BashOperator(
+        task_id='data_processing_silver_run',
+        bash_command=(
+            'cd /opt/airflow/scripts && '
+            'python3 data_processing_silver.py '
+            '--startdate "{{ ds }}" '
+        ),
+    )  
+    data_processing_silver_completed = DummyOperator(task_id="data_processing_silver_completed")  
 
     ###########################
     #Label Store
     ###########################
-    dep_check_source_label_data = DummyOperator(task_id="dep_check_source_label_data")
-
-    bronze_label_store = DummyOperator(task_id="run_bronze_label_store")
-
-    silver_label_store = DummyOperator(task_id="silver_label_store")
-
     gold_label_store = BashOperator(
         task_id='run_gold_label_feature_store',
         bash_command=(
@@ -42,6 +60,9 @@ with DAG(
     )
     label_store_completed = DummyOperator(task_id="label_store_completed")
 
+    ###########################
+    #Feature Store
+    ###########################
     gold_feature_store = BashOperator(
         task_id='run_gold_feature_store',
         bash_command=(
@@ -53,10 +74,14 @@ with DAG(
     feature_store_completed = DummyOperator(task_id="feature_store_completed")
 
     # Define task dependencies to run scripts sequentially
-    dep_check_source_label_data >> bronze_label_store >> silver_label_store >> gold_label_store >> label_store_completed
-    silver_label_store >> gold_feature_store >> feature_store_completed
+    data_processing_bronze_start >> data_processing_bronze_run >> data_processing_bronze_completed
+    data_processing_bronze_completed >> data_processing_silver_run >> data_processing_silver_completed
+    data_processing_silver_completed >> gold_label_store >> label_store_completed
+    data_processing_silver_completed >> gold_feature_store >> feature_store_completed
 
-    #--- model inference ---
+    ###########################
+    #Model Inference
+    ###########################
     model_inference_start = DummyOperator(task_id="model_inference_start")
 
     model_reg_inference = BashOperator(task_id='model_reg_inference',
@@ -85,7 +110,9 @@ with DAG(
     model_inference_start >> model_xgb_inference >> model_inference_completed
 
 
-    # --- model monitoring ---
+    ###########################
+    #Model Monitoring
+    ###########################
     def is_last_run(execution_date_str):
         return execution_date_str >= "2017-06-01" #start monitoring 6 months before 
 
