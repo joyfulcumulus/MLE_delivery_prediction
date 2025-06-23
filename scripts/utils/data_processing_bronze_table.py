@@ -4,14 +4,11 @@ import shutil
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import random
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-import pprint
 import pyspark
-import pyspark.sql.functions as F
-import argparse
 
+import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, year, month
 from pyspark.sql.functions import date_format, to_date
@@ -76,7 +73,7 @@ def process_olist_order_items_bronze(bronze_root: str, spark):
         spark)
 # -------------------------------------------------------------------------------------------------------------
 
-# Process Order_Payments
+# Process Orders
 def process_olist_orders_bronze(bronze_root, spark):
     # Read source data
     df = spark.read.csv("data/olist_orders_dataset.csv", header=True, inferSchema=True)
@@ -159,9 +156,6 @@ def process_product_cat_translation_bronze(bronze_root: str, spark):
 
 # Process Order_Reviews
 def process_olist_order_reviews_bronze(bronze_root: str, spark):
-    """
-    Reads the olist order reviews CSV and writes it out as a bronze Parquet table.
-    """
     return _read_write_bronze(
         "data/olist_order_reviews_dataset.csv",
         os.path.join(bronze_root, "order_reviews"),
