@@ -56,7 +56,7 @@ def main(snapshotdate, modelname):
     features_sdf = features_store_sdf.toPandas()
     print("extracted features_sdf", features_sdf.count(), config["snapshot_date"])
 
-    encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    encoder = OneHotEncoder(drop = 'first', sparse=False, handle_unknown='ignore')
     #encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
     encoder.fit(features_sdf[['season']])  # Only fit on training data
     encoded_feature = encoder.transform(features_sdf[['season']])
