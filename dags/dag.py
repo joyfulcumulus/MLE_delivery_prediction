@@ -25,27 +25,27 @@ with DAG(
     ###########################
     #Data Processing
     ###########################
-    data_processing_bronze_start = DummyOperator(task_id="data_processing_bronze_start")
+    bronze_store_start = DummyOperator(task_id="bronze_store_start")
 
-    data_processing_bronze_run = BashOperator(
-        task_id='data_processing_bronze_run',
+    bronze_store_run = BashOperator(
+        task_id='bronze_store_run',
         bash_command=(
             'cd /opt/airflow/scripts && '
-            'python3 data_processing_bronze.py '
+            'python3 bronze_store.py '
             '--startdate "{{ ds }}" '
         ),
     )
-    data_processing_bronze_completed = DummyOperator(task_id="data_processing_bronze_completed")
+    bronze_store_completed = DummyOperator(task_id="bronze_store_completed")
 
-    data_processing_silver_run = BashOperator(
-        task_id='data_processing_silver_run',
+    silver_store_run = BashOperator(
+        task_id='silver_store_run',
         bash_command=(
             'cd /opt/airflow/scripts && '
-            'python3 data_processing_silver.py '
+            'python3 silver_store.py '
             '--startdate "{{ ds }}" '
         ),
     )  
-    data_processing_silver_completed = DummyOperator(task_id="data_processing_silver_completed")  
+    silver_store_completed = DummyOperator(task_id="silver_store_completed")  
 
     ###########################
     #Label Store
@@ -74,10 +74,10 @@ with DAG(
     feature_store_completed = DummyOperator(task_id="feature_store_completed")
 
     # Define task dependencies to run scripts sequentially
-    data_processing_bronze_start >> data_processing_bronze_run >> data_processing_bronze_completed
-    data_processing_bronze_completed >> data_processing_silver_run >> data_processing_silver_completed
-    data_processing_silver_completed >> gold_label_store >> label_store_completed
-    data_processing_silver_completed >> gold_feature_store >> feature_store_completed
+    bronze_store_start >> bronze_store_run >> bronze_store_completed
+    bronze_store_completed >> silver_store_run >> silver_store_completed
+    silver_store_completed >> gold_label_store >> label_store_completed
+    silver_store_completed >> gold_feature_store >> feature_store_completed
 
     ###########################
     #Model Inference
