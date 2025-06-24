@@ -35,6 +35,8 @@ if __name__ == "__main__":
         silver_root = "datamart/silver"
         os.makedirs(silver_root, exist_ok=True)
         print(f"Silver root directory: {silver_root}")
+
+        bronze_root = "datamart/bronze"
         
         # Create all required output directories (Silver tables first, then derived silver tables)
         # Customers
@@ -109,8 +111,8 @@ if __name__ == "__main__":
         # silver_processing.process_silver_delivery_history(silver_delivery_history_directory, spark, date_str=snapshot_date_str)
 
         # # Derived Silver Tables that are dependent on other Derived Silver Tables
-        # silver_processing.process_silver_seller_performance(silver_seller_perf_directory, spark, date_str=snapshot_date_str)
-        # silver_processing.process_silver_concentration(silver_concentration_directory, spark, date_str=snapshot_date_str)
+        silver_processing.process_silver_seller_performance(bronze_root, silver_root, spark, date_str=snapshot_date_str)
+        silver_processing.process_silver_concentration(silver_root, spark, date_str=snapshot_date_str)
 
         print('\n\n---completed job---\n\n')
 

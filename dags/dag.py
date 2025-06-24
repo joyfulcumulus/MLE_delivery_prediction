@@ -43,6 +43,10 @@ with DAG(
             'python3 silver_store.py '
             '--startdate "{{ ds }}" '
         ),
+        execution_timeout=timedelta(minutes=30),  
+        retries=1,
+        retry_delay=timedelta(minutes=5),
+        dag=dag,
     )  
     silver_store_completed = DummyOperator(task_id="silver_store_completed")  
 
