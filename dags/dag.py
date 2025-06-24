@@ -16,7 +16,7 @@ with DAG(
     default_args=default_args,
     description='Delivery lateness prediction pipeline',
     schedule_interval='0 9 * * *',  # At 09:00 AM on daily
-    start_date=datetime(2016, 9, 4), #2016-09-04 min date
+    start_date=datetime(2016, 9, 4), #min date
     end_date=datetime(2016, 10, 4), # end_date=datetime(2017, 12, 3), #'2018-09-03' max date
     catchup=True,
     max_active_runs=1 # ensures no parallel processing. Will execute all steps for day 1 first, then move to day 2
@@ -31,7 +31,7 @@ with DAG(
         task_id='bronze_store_run',
         bash_command=(
             'cd /opt/airflow/scripts && '
-            'python3 bronze_store.py '
+            'python3 bronze_store.py "{{ ds }}"'
         ),
     )
     bronze_store_completed = DummyOperator(task_id="bronze_store_completed")
