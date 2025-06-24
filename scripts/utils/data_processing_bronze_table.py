@@ -97,16 +97,14 @@ def process_olist_orders_bronze(bronze_root, spark, target_date_str):
         )
         .withColumn(
             "snapshot_date",
-            date_format(col("order_purchase_timestamp"), "yyyy-MM-dd")
+            date_format(col("order_purchase_timestamp"), "yyyy_MM_dd")
         )
     )
 
     # 3. Filter for the requested date
     daily_df = df.filter(col("snapshot_date") == target_date_str)
 
-    # ------------------------------------------------------------------ #
-    #                ↓ Everything below mirrors the old logic ↓          #
-    # ------------------------------------------------------------------ #
+
     output_path = os.path.join(bronze_root, "orders")
     os.makedirs(output_path, exist_ok=True)
 
@@ -133,7 +131,7 @@ def process_olist_orders_bronze(bronze_root, spark, target_date_str):
             writer.writerow(daily_df.columns)        # header only
         print(f"Empty day: wrote header-only file {final_filepath}")
 
-    # Always clean up temp dir
+    # Clean up temp dir
     shutil.rmtree(temp_dir, ignore_errors=True)
 
     # Row count for logging (safe even if zero)
