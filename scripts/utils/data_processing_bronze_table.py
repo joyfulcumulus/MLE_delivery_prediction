@@ -1,6 +1,7 @@
 import os
 import glob
 import shutil
+import csv
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -74,57 +75,74 @@ def process_olist_order_items_bronze(bronze_root: str, spark):
 # -------------------------------------------------------------------------------------------------------------
 
 # Process Orders
-def process_olist_orders_bronze(bronze_root, spark):
-    # Read source data
-    df = spark.read.csv("data/olist_orders_dataset.csv", header=True, inferSchema=True)
-    
-    # Convert timestamp and create snapshot_date as yyyy_mm_dd string
-    df = df.withColumn("order_purchase_timestamp", col("order_purchase_timestamp").cast("timestamp"))
-    df = df.withColumn("snapshot_date", date_format(col("order_purchase_timestamp"), "yyyy_MM_dd"))
-    
-    # Extract distinct days (as strings)
-    days = df.select("snapshot_date").distinct().collect()
-    day_list = [row.snapshot_date for row in days]
-    
-    # Create output directory
+def process_olist_orders_bronze(bronze_root, spark, target_date_str):
+    """
+    Write ONE daily CSV for `target_date_str` (YYYY-MM-DD).
+    If the day has no orders, output a header-only CSV.
+    Returns the full DataFrame (with snapshot_date column).
+    """
+
+    # 1. Read full source file
+    df = spark.read.csv(
+        "data/olist_orders_dataset.csv",
+        header=True,
+        inferSchema=True
+    )
+
+    # 2. Add snapshot_date (yyyy-MM-dd)
+    df = (
+        df.withColumn(
+            "order_purchase_timestamp",
+            col("order_purchase_timestamp").cast("timestamp")
+        )
+        .withColumn(
+            "snapshot_date",
+            date_format(col("order_purchase_timestamp"), "yyyy-MM-dd")
+        )
+    )
+
+    # 3. Filter for the requested date
+    daily_df = df.filter(col("snapshot_date") == target_date_str)
+
+    # ------------------------------------------------------------------ #
+    #                ↓ Everything below mirrors the old logic ↓          #
+    # ------------------------------------------------------------------ #
     output_path = os.path.join(bronze_root, "orders")
     os.makedirs(output_path, exist_ok=True)
-    
-    for day_str in day_list:
-        # Filter data for current day
-        daily_df = df.filter(col("snapshot_date") == day_str)
-        
-        # Extract day, month, and year from the string
-        day_part, month_part, year_part = day_str.split('_')
-        filename = f"bronze_olist_orders_{day_part}_{month_part}_{year_part}.csv"
-        final_filepath = os.path.join(output_path, filename)
-        
-        # Create temporary directory
-        temp_dir = os.path.join(output_path, f"temp_{day_str}")
-        os.makedirs(temp_dir, exist_ok=True)
-        
-        # Write to temporary directory
-        daily_df.coalesce(1).write.csv(temp_dir, mode="overwrite", header=True)
-        
-        # Find the generated CSV file
-        csv_files = glob.glob(os.path.join(temp_dir, "*.csv"))
-        if not csv_files:
-            print(f"Warning: No CSV file found in {temp_dir}")
-            shutil.rmtree(temp_dir)
-            continue
-            
-        # Move the CSV file to final location
+
+    year, month, day = target_date_str.split("-")
+    filename = f"bronze_olist_orders_{year}_{month}_{day}.csv"
+    final_filepath = os.path.join(output_path, filename)
+
+    temp_dir = os.path.join(output_path, f"temp_{target_date_str}")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Write (may be empty). Header=True ensures header row *if* Spark emits a file
+    daily_df.coalesce(1).write.csv(temp_dir, mode="overwrite", header=True)
+
+    csv_files = glob.glob(os.path.join(temp_dir, "*.csv"))
+
+    if csv_files:
+        # Normal case: Spark produced a part-*.csv file
         shutil.move(csv_files[0], final_filepath)
-        
-        # Clean up temporary directory
-        shutil.rmtree(temp_dir)
-        
-        # Print status
-        count = daily_df.count()
-        print(f"Day {day_str}: {count} rows")
-        print(f"----------> Saved to: {final_filepath}")
-    
+    else:
+        # Edge case: no data → Spark created only _SUCCESS (no CSV).
+        # Manually create header-only CSV so downstream jobs still find a file.
+        with open(final_filepath, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(daily_df.columns)        # header only
+        print(f"Empty day: wrote header-only file {final_filepath}")
+
+    # Always clean up temp dir
+    shutil.rmtree(temp_dir, ignore_errors=True)
+
+    # Row count for logging (safe even if zero)
+    count = daily_df.count()
+    print(f"{target_date_str}: {count} rows -> {final_filepath}")
+
     return df
+
+
 # -------------------------------------------------------------------------------------------------------------
 
 # Process Products
