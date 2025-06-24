@@ -283,7 +283,7 @@ def process_silver_olist_orders(bronze_directory, silver_directory, spark, date_
     # If file is found, proceed to read CSV
     df = spark.read.option("header", True).option("inferSchema", True).csv(filepath)
     print('loaded from:', filepath, 'row count:', df.count())
-
+    print('🔴🔴🔴🔴🔴 Brozne orders table count: ',df.count())
     # Clean data: enforce schema / data type
     # Dictionary specifying columns and their desired datatypes
     column_type_map = {
@@ -372,7 +372,7 @@ def process_silver_olist_orders(bronze_directory, silver_directory, spark, date_
 
     # Adding snapshot date column
     df = df.withColumn("snapshot_date", to_date(lit(date_formatted), "yyyy_MM_dd"))
-
+    print('🔴🔴🔴🔴🔴df_order table count: ',df.count())
     # save 
     parquet_name = f"silver_olist_orders_{date_formatted}.parquet"
     output_path = os.path.join(silver_directory, parquet_name)
@@ -385,11 +385,274 @@ def process_silver_olist_orders(bronze_directory, silver_directory, spark, date_
 ## DERIVED TABLES
 
 
+def process_silver_order_logistics(silver_directory,spark, date_str):
+    # Read bronze order table of specific date_str
+    date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") # Convert "YYYY-MM-DD" from airflow to "YYYY_MM_DD"
+    order_file_path = f"datamart/silver/orders/silver_olist_orders_{date_formatted}.parquet"
+    
+    # print('order_file_path:', order_file_path)
+    # filepath = os.path.join(silver_directory, order_file_path)
+    
+    # Check if file exists
+    if not os.path.exists(order_file_path):
+        print(f"[SKIP] No orders csv found for date: {date_formatted}")
+        return None  # Early return
+    
+    # If file is found, proceed to read CSV
+    
+    
+    
+    # Read inputs
+    df_orders = spark.read.parquet(order_file_path)
+    print('🔴🔴🔴🔴df_order table count: ',df_orders.count())
+    df_order_items = spark.read.parquet("datamart/silver/order_items/silver_olist_order_items.parquet")
+    df_products = spark.read.parquet("datamart/silver/products/silver_olist_products.parquet")
+    # df_categories = spark.read.parquet("datamart/bronze/category_translation/bronze_product_category_translation.parquet")
+    
+
+    
+    order_metrics = df_order_items.groupBy("order_id").agg(
+        F.max("order_item_id").alias("total_qty"),
+        F.sum("price").alias("total_price"),
+        F.sum("freight_value").alias("total_freight_value")
+    )
+
+    
+    df_items_with_products = df_order_items.select("order_id", "product_id") \
+        .join(
+            df_products.select(
+                "product_id", "product_weight_g",
+                "product_length_cm", "product_height_cm", "product_width_cm"
+            ),
+            on="product_id", how="left"
+        )
+
+    
+    df_items_with_products = df_items_with_products.withColumn(
+        "product_volume_cm3",
+        col("product_length_cm") * col("product_height_cm") * col("product_width_cm")
+    )
+
+    
+    product_metrics = df_items_with_products.groupBy("order_id").agg(
+        F.sum("product_weight_g").alias("total_weight_g"),
+        F.sum("product_volume_cm3").alias("total_volume_cm3")
+    )
+
+    
+    final_df = df_orders.select("order_id", "order_purchase_timestamp") \
+        .join(order_metrics, on="order_id", how="inner") \
+        .join(product_metrics, on="order_id", how="left") \
+        .withColumn(
+            "total_density",
+            when(col("total_volume_cm3") != 0,
+                 col("total_weight_g") / col("total_volume_cm3")
+            ).otherwise(None)
+        )
+    
+    
+    df_items_with_cats = df_order_items.select("order_id", "product_id") \
+        .join(df_products.select("product_id", "product_category_name_english", "main_category", "sub_category"), on="product_id", how="left")
+    
+    # print('checkpoint 1')
+    main_cat_counts = df_items_with_cats.groupBy("order_id", "main_category") \
+        .agg(count("*").alias("main_cat_count"))
+    # print('checkpoint 2')
+    main_cat_window = Window.partitionBy("order_id").orderBy(col("main_cat_count").desc())
+    
+    most_common_main = main_cat_counts.withColumn(
+        "rank", row_number().over(main_cat_window)
+    ).filter(col("rank") == 1).drop("rank", "main_cat_count")
+    
+    sub_cat_counts = df_items_with_cats.groupBy("order_id", "sub_category") \
+        .agg(count("*").alias("sub_cat_count"))
+    sub_cat_window = Window.partitionBy("order_id").orderBy(col("sub_cat_count").desc())
+    most_common_sub = sub_cat_counts.withColumn(
+        "rank", row_number().over(sub_cat_window)
+    ).filter(col("rank") == 1).drop("rank", "sub_cat_count")
+
+    order_categories = most_common_main.join(most_common_sub, on="order_id", how="outer")
+    final_df_with_cats = final_df.join(order_categories, on="order_id", how="left")
+
+    # Adding snapshot date column
+    
+    partition_name = str(order_file_path)
+    
+    snapshot_str = partition_name.replace("datamart/silver/orders/silver_olist_orders_", "").replace(".parquet", "")
+    
+    # final_df_with_cats = final_df_with_cats.withColumn("snapshot_date", to_date(lit(snapshot_str), "dd_MM_yyyy"))
+    final_df_with_cats = final_df_with_cats.withColumn("snapshot_date", to_date(lit(snapshot_str), "yyyy_MM_dd"))
+    row_count = final_df_with_cats.count()
+
+    print(f"---> ✅ Saved: {silver_directory}_{date_str} → {row_count}")
+
+    return final_df_with_cats
+
+def process_silver_shipping_infos(silver_directory, spark, date_str):
+
+    # Read bronze order table of specific date_str
+    date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") # Convert "YYYY-MM-DD" from airflow to "YYYY_MM_DD"
+    order_file_path = f"datamart/silver/orders/silver_olist_orders_{date_formatted}.parquet"
+    # print('order_file_path:', order_file_path)
+    # filepath = os.path.join(silver_directory, order_file_path)
+    
+    # Check if file exists
+    if not os.path.exists(order_file_path):
+        print(f"[SKIP] No orders csv found for date: {date_formatted}")
+        return None  # Early return
+    
+    # If file is found, proceed to read CSV
+    
+    
+    # print('1')
+    # Read all required data
+    df_orders = spark.read.parquet(order_file_path)
+    # print('2')
+    print('🔴🔴🔴df_order table count: ',df_orders.count())
+    df_sellers = spark.read.parquet("datamart/silver/sellers/silver_olist_sellers.parquet")
+    df_customers = spark.read.parquet("datamart/silver/customers/silver_olist_customers.parquet")
+    df_order_items = spark.read.parquet("datamart/silver/order_items/silver_olist_order_items.parquet")
+    df_geo = spark.read.parquet("datamart/silver/geolocation/silver_olist_geolocation.parquet")
+    
+    # Get relevant fields in df_orders
+    df_orders = df_orders.select("order_id", "order_purchase_timestamp", "customer_id", "snapshot_date")
+    
+    # df_orders left join df_customers to get customer address
+    orders_customers = df_orders.join(df_customers, on="customer_id", how="inner")
+    
+    # For simplicity, pick a seller per order_id (if order has multiple items from different sellers, any 1 will do)
+    order_items_dedupe = df_order_items.select("order_id", "seller_id").dropDuplicates(["order_id"])
+    
+    # orders_customers left join order_items_dedupe to get seller_id of the order
+    orders_customers_sellers = orders_customers.join(order_items_dedupe, on="order_id", how="left")
+    
+    # orders_customers_sellers left join df_sellers to get seller address
+    orders_customers_sellers = orders_customers_sellers.join(df_sellers, on="seller_id", how="left")
+    
+    # Create separate geolocation table for customer and seller (rename fields)
+    geo_customer = df_geo.withColumnRenamed("geolocation_zip_code_prefix", "customer_zip_code_prefix") \
+                         .withColumnRenamed("geolocation_lat", "customer_lat") \
+                         .withColumnRenamed("geolocation_lng", "customer_lng")
+    
+    geo_seller = df_geo.withColumnRenamed("geolocation_zip_code_prefix", "seller_zip_code_prefix") \
+                       .withColumnRenamed("geolocation_lat", "seller_lat") \
+                       .withColumnRenamed("geolocation_lng", "seller_lng")
+    
+    # Join customer and seller coordinates
+    df_with_customer_geo = orders_customers_sellers.join(F.broadcast(geo_customer), on="customer_zip_code_prefix", how="left")
+    df_with_both_geo = df_with_customer_geo.join(F.broadcast(geo_seller), on="seller_zip_code_prefix", how="left")
+    
+    # Compute Haversine distance manually so no need library
+    R = 6371.0  # Earth radius in km
+    df_with_distance = df_with_both_geo.withColumn("delivery_distance",
+        R * 2 * F.atan2(
+            F.sqrt(
+                F.sin((F.radians(col("customer_lat") - col("seller_lat")) / 2)) ** 2 +
+                F.cos(F.radians(col("customer_lat"))) * 
+                F.cos(F.radians(col("seller_lat"))) *
+                F.sin((F.radians(col("customer_lng") - col("seller_lng")) / 2)) ** 2
+            ),
+            F.sqrt(1 - (
+                F.sin((F.radians(col("customer_lat") - col("seller_lat")) / 2)) ** 2 +
+                F.cos(F.radians(col("customer_lat"))) *
+                F.cos(F.radians(col("seller_lat"))) *
+                F.sin((F.radians(col("customer_lng") - col("seller_lng")) / 2)) ** 2
+            ))
+        )
+    )
+    
+    # Compute Boolean variables
+    df_final = df_with_distance.withColumn("same_zipcode", (col("customer_zip_code_prefix") == col("seller_zip_code_prefix")).cast("int")) \
+                               .withColumn("same_city", (col("customer_city") == col("seller_city")).cast("int")) \
+                               .withColumn("same_state", (col("customer_state") == col("seller_state")).cast("int"))
+    
+    # Choose only required columns
+    selected_cols = [
+        "order_id", "order_purchase_timestamp",
+        "customer_zip_code_prefix", "customer_city", "customer_state",
+        "customer_lat", "customer_lng",
+        "seller_zip_code_prefix", "seller_city", "seller_state",
+        "seller_lat", "seller_lng",
+        "delivery_distance", "same_zipcode", "same_city", "same_state",
+        "snapshot_date"
+    ]
+    
+    df_final = df_final.select(selected_cols)
+    
+    # save silver table - IRL connect to database to write
+    year_month = os.path.basename(order_file_path).replace("silver_olist_orders_", "").replace(".parquet", "")
+    partition_name = "silver_shipping_infos_" + year_month + '.parquet'
+    
+    filepath = "datamart/silver/shipping_infos/" + partition_name
+    df_final.write.mode("overwrite").parquet(filepath)
+    print('saved to:', filepath)
+    row_count = df_final.count()
+
+    print(f"---> ✅{row_count}")
+    return df_final
+
+def process_silver_delivery_history(silver_directory,spark, date_str):
+    # Read bronze order table of specific date_str
+    date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") # Convert "YYYY-MM-DD" from airflow to "YYYY_MM_DD"
+    order_file_path = f"datamart/silver/orders/silver_olist_orders_{date_formatted}.parquet"
+    # print('order_file_path:', order_file_path)
+    # filepath = os.path.join(silver_directory, order_file_path)
+    
+    # Check if file exists
+    if not os.path.exists(order_file_path):
+        print(f"[SKIP] No orders csv found for date: {date_formatted}")
+        return None  # Early return
+    
+    # If file is found, proceed to read CSV
 
 
+    # Read all required data
+    df_orders = spark.read.parquet(order_file_path)
+    print('🔴🔴🔴🔴df_order table count: ',df_orders.count())
+    # Add computed columns. Note, datediff will return null if fone of the timestamps is null (i.e. not available)
+    df_delivery = df_orders.select(
+        "order_id",
+        "order_purchase_timestamp",
+        "order_approved_at",
+        "order_delivered_carrier_date",
+        "order_delivered_customer_date",
+        "snapshot_date"
+    ).withColumn(
+        "is_weekend", when(F.dayofweek("order_purchase_timestamp").isin([1, 7]), 1).otherwise(0)
+    ).withColumn(
+        "approval_duration", F.datediff("order_approved_at", "order_purchase_timestamp")
+    ).withColumn(
+        "processing_duration", F.datediff("order_delivered_carrier_date", "order_approved_at")
+    ).withColumn(
+        "ship_duration", F.datediff("order_delivered_customer_date", "order_delivered_carrier_date")
+    ).withColumn(
+        "act_days_to_deliver", F.datediff("order_delivered_customer_date", "order_purchase_timestamp")
+    ).withColumn(
+        "miss_delivery_sla", col("act_days_to_deliver") > 14
+    )
+    
+    df_delivery = df_delivery.select(
+        "order_id",
+        "order_purchase_timestamp",
+        "is_weekend",
+        "approval_duration",
+        "processing_duration",
+        "ship_duration",
+        "act_days_to_deliver",
+        "miss_delivery_sla"
+    )
+    
+    # save silver table - IRL connect to database to write
+    year_month = os.path.basename(order_file_path).replace("silver_olist_orders_", "").replace(".parquet", "")
+    partition_name = "silver_delivery_history_" + year_month + '.parquet'
+    
+    filepath = "datamart/silver/delivery_history/" + partition_name
+    df_delivery.write.mode("overwrite").parquet(filepath)
+    print('saved to:', filepath)
+    row_count = df_delivery.count()
 
-
-
+    print(f"---> ✅{row_count}")
+    return df_delivery
 
 
 def process_silver_seller_performance(bronze_directory, silver_directory, spark, date_str):
