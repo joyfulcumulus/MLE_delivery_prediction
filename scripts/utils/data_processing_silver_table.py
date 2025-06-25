@@ -489,10 +489,29 @@ def process_silver_order_logistics(silver_directory,spark, date_str):
     # final_df_with_cats = final_df_with_cats.withColumn("snapshot_date", to_date(lit(snapshot_str), "dd_MM_yyyy"))
     final_df_with_cats = final_df_with_cats.withColumn("snapshot_date", to_date(lit(snapshot_str), "yyyy_MM_dd"))
     row_count = final_df_with_cats.count()
-    print('🟢🟢🟢 saved df count:',final_df_with_cats.count())
-    print(f"---> ✅ Saved: {silver_directory}_{date_str} → {row_count}")
 
-    return final_df_with_cats
+    df_final = final_df_with_cats
+
+    # print('🟢🟢🟢 saved df count:',final_df_with_cats.count())
+    # print(f"---> ✅ Saved: {silver_directory}_{date_str} → {row_count}")
+
+
+    # save silver table - IRL connect to database to write
+    year_month = os.path.basename(order_file_path).replace("silver_olist_orders_", "").replace(".parquet", "")
+    partition_name = "silver_olist_order_logistics_" + year_month + '.parquet'
+    
+    filepath = "datamart/silver/order_logistics/" + partition_name
+
+    print(' 🟧 🟧 🟧 filepath:', filepath)
+    # silver_olist_order_logistics_2018_08_25.parquet
+
+    df_final.write.mode("overwrite").parquet(filepath)
+    print('saved to:', filepath)
+    row_count = df_final.count()
+    print('🟢🟢🟢 saved df count:',df_final.count())
+    print(f"---> ✅{row_count}")
+
+    return df_final
 
 def process_silver_shipping_infos(silver_directory, spark, date_str):
 
