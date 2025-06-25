@@ -17,7 +17,7 @@ with DAG(
     description='Delivery lateness prediction pipeline',
     schedule_interval='0 9 * * *',  # At 09:00 AM on daily
     start_date=datetime(2016, 9, 4), #min date
-    end_date=datetime(2016, 10, 4), # end_date=datetime(2017, 12, 3), #'2018-09-03' max date
+    end_date=datetime(2016, 9, 7), # end_date=datetime(2017, 12, 3), #'2018-09-03' max date
     catchup=True,
     max_active_runs=1 # ensures no parallel processing. Will execute all steps for day 1 first, then move to day 2
 ) as dag:
@@ -25,43 +25,43 @@ with DAG(
     ###########################
     #Data Processing
     ###########################
-    bronze_store_start = DummyOperator(task_id="bronze_store_start")
+    # bronze_store_start = DummyOperator(task_id="bronze_store_start")
 
-    bronze_store_run = BashOperator(
-        task_id='bronze_store_run',
-        bash_command=(
-            'cd /opt/airflow/scripts && '
-            'python3 bronze_store.py "{{ ds }}"'
-        ),
-    )
-    bronze_store_completed = DummyOperator(task_id="bronze_store_completed")
+    # bronze_store_run = BashOperator(
+    #     task_id='bronze_store_run',
+    #     bash_command=(
+    #         'cd /opt/airflow/scripts && '
+    #         'python3 bronze_store.py "{{ ds }}"'
+    #     ),
+    # )
+    # bronze_store_completed = DummyOperator(task_id="bronze_store_completed")
 
-    silver_store_run = BashOperator(
-        task_id='silver_store_run',
-        bash_command=(
-            'cd /opt/airflow/scripts && '
-            'python3 silver_store.py '
-            '--startdate "{{ ds }}" '
-        ),
-        execution_timeout=timedelta(minutes=30),  
-        retries=1,
-        retry_delay=timedelta(minutes=5),
-        dag=dag,
-    )  
-    silver_store_completed = DummyOperator(task_id="silver_store_completed")  
+    # silver_store_run = BashOperator(
+    #     task_id='silver_store_run',
+    #     bash_command=(
+    #         'cd /opt/airflow/scripts && '
+    #         'python3 silver_store.py '
+    #         '--startdate "{{ ds }}" '
+    #     ),
+    #     execution_timeout=timedelta(minutes=30),  
+    #     retries=1,
+    #     retry_delay=timedelta(minutes=5),
+    #     dag=dag,
+    # )  
+    # silver_store_completed = DummyOperator(task_id="silver_store_completed")  
 
-    ###########################
-    #Label Store
-    ###########################
-    gold_label_store = BashOperator(
-        task_id='run_gold_label_feature_store',
-        bash_command=(
-            'cd /opt/airflow/scripts && '
-            'python3 gold_label_store.py '
-            '--startdate "{{ ds }}" '
-        ),
-    )
-    label_store_completed = DummyOperator(task_id="label_store_completed")
+    # ###########################
+    # #Label Store
+    # ###########################
+    # gold_label_store = BashOperator(
+    #     task_id='run_gold_label_feature_store',
+    #     bash_command=(
+    #         'cd /opt/airflow/scripts && '
+    #         'python3 gold_label_store.py '
+    #         '--startdate "{{ ds }}" '
+    #     ),
+    # )
+    # label_store_completed = DummyOperator(task_id="label_store_completed")
 
     ###########################
     #Feature Store

@@ -62,7 +62,7 @@ def process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logi
     
     # join concentration_df
     df = df.join(concentration_df, on='snapshot_date', how='left')
-    df = df.drop('granularity_level', 'type', 'region', 'snapshot_date')
+    df = df.drop('granularity_level', 'type', 'region')
 
     # drop unused columns
     df = df.drop('customer_id', 'product_id', 'seller_id', 'date', 'month')

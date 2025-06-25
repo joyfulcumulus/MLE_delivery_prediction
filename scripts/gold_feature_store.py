@@ -70,7 +70,7 @@ if __name__ == "__main__":
     shipping_df = read_silver_table('shipping_infos', silver_directory, spark, date_str=snapshot_date_str)
     history_df = read_silver_table('delivery_history', silver_directory, spark, date_str=snapshot_date_str)
     seller_perform_df = read_silver_table('seller_performance', silver_directory, spark, date_str=snapshot_date_str)
-    concentration_df = read_silver_table('concentration', silver_directory, spark)
+    concentration_df = read_silver_table('concentration', silver_directory, spark, date_str=snapshot_date_str)
     
         
     # Build gold tables
