@@ -113,18 +113,19 @@ with DAG(
     model_inference_start >> model_xgb_inference >> model_inference_completed
 
 
-    ###########################
-    #Model Monitoring
-    ###########################
-    def is_last_run(execution_date_str):
-        return execution_date_str >= "2017-06-01" #start monitoring 6 months before 
+    # --- model monitoring ---
 
-    model_monitor_start = ShortCircuitOperator(
-        task_id="model_monitor_start",
+    ######################################################################
+    #Trigger the next job automatically
+    ######################################################################
+    def is_last_run(execution_date_str):
+        return execution_date_str >= "2016-09-12"
+
+    check_hist_data_loaded = ShortCircuitOperator(
+        task_id="check_hist_data_loaded",
         python_callable=is_last_run,
         op_args=["{{ ds }}"]
     )
-
 
     model_xgb_monitor = BashOperator(task_id='model_xgb_monitor',
         bash_command=(
@@ -146,6 +147,6 @@ with DAG(
     model_monitor_completed = DummyOperator(task_id="model_monitor_completed")
     
     # Define task dependencies to run scripts sequentially
-    model_inference_completed >> model_monitor_start
-    model_monitor_start >> model_xgb_monitor >> model_monitor_completed
-    model_monitor_start >> model_reg_monitor >> model_monitor_completed
+    model_inference_completed >> check_hist_data_loaded
+    check_hist_data_loaded >> model_xgb_monitor >> model_monitor_completed
+    check_hist_data_loaded >> model_reg_monitor >> model_monitor_completed
