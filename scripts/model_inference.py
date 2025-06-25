@@ -46,7 +46,7 @@ def main(snapshotdate, modelname):
     print("row_count for features:",features_store_sdf.count(),"\n")
     
     # Filter out NA
-    features_store_sdf = features_store_sdf.drop("avg_delay_rate","concentration","act_days_to_deliver","total_freight_value","avg_processing_time","same_state","total_volume_cm3","seller_city","seller_state")
+    features_store_sdf = features_store_sdf.drop("snapshot_date","avg_delay_rate","concentration","act_days_to_deliver","total_freight_value","avg_processing_time","same_state","total_volume_cm3","seller_city","seller_state")
     rows_with_nulls = features_store_sdf.filter(
         reduce(lambda a, b: a | b, (col(c).isNull() for c in features_store_sdf.columns))
     )
