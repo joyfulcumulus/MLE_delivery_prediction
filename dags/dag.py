@@ -50,18 +50,18 @@ with DAG(
     # )  
     # silver_store_completed = DummyOperator(task_id="silver_store_completed")  
 
-    ###########################
-    #Label Store
-    ###########################
-    gold_label_store = BashOperator(
-        task_id='run_gold_label_feature_store',
-        bash_command=(
-            'cd /opt/airflow/scripts && '
-            'python3 gold_label_store.py '
-            '--startdate "{{ ds }}" '
-        ),
-    )
-    label_store_completed = DummyOperator(task_id="label_store_completed")
+    # ###########################
+    # #Label Store
+    # ###########################
+    # gold_label_store = BashOperator(
+    #     task_id='run_gold_label_feature_store',
+    #     bash_command=(
+    #         'cd /opt/airflow/scripts && '
+    #         'python3 gold_label_store.py '
+    #         '--startdate "{{ ds }}" '
+    #     ),
+    # )
+    # label_store_completed = DummyOperator(task_id="label_store_completed")
 
     # ###########################
     # #Feature Store
@@ -74,14 +74,13 @@ with DAG(
             '--startdate "{{ ds }}" '
         ),
     )
-    feature_store_completed = DummyOperator(task_id="feature_store_completed")
+    # feature_store_completed = DummyOperator(task_id="feature_store_completed")
 
     # # Define task dependencies to run scripts sequentially
     # bronze_store_start >> bronze_store_run >> bronze_store_completed
     # bronze_store_completed >> silver_store_run >> silver_store_completed
     # silver_store_completed >> gold_label_store >> label_store_completed
     # silver_store_completed >> gold_feature_store >> feature_store_completed
-    gold_label_store >> label_store_completed >> gold_feature_store >> feature_store_completed
 
     # ###########################
     # #Model Inference
