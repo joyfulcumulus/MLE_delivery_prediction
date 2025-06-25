@@ -92,7 +92,7 @@ with DAG(
             'cd /opt/airflow/scripts &&'
             'python3 model_inference.py '
             '--snapshotdate "{{ ds }}" '
-            '--modelname reg_2017_12_04.pkl'
+            '--modelname reg_2018_04_01.pkl'
         ),
     )
 
@@ -101,7 +101,7 @@ with DAG(
             'cd /opt/airflow/scripts &&'
             'python3 model_inference.py '
             '--snapshotdate "{{ ds }}" '
-            '--modelname xgb_2017_12_04.pkl'
+            '--modelname xgb_2018_04_01.pkl'
         ),
     )
 
