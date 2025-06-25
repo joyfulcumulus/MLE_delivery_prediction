@@ -55,20 +55,20 @@ def main(snapshotdate, modelname):
     features_store_sdf = features_store_sdf.filter(col("order_status") == "delivered")
     features_sdf = features_store_sdf.toPandas()
     print("extracted features_sdf", features_sdf.count(), config["snapshot_date"])
-
-    encoder = OneHotEncoder(drop = 'first', sparse=False, handle_unknown='ignore')
-    #encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
-    encoder.fit(features_sdf[['season']])  # Only fit on training data
-    encoded_feature = encoder.transform(features_sdf[['season']])
-    encoded_f = pd.DataFrame(encoded_feature, columns=encoder.get_feature_names_out(['season']), index=features_sdf.index)
-    features_sdf = pd.concat([features_sdf.drop(columns=['season']), encoded_f], axis=1)
     
     if features_sdf.empty:
         y_inference_pdf = pd.DataFrame(columns=['order_id', 'order_status', 'model_name', 'model_predictions'])
         print('y_inference', y_inference_pdf.shape[0])
     else: 
         # prepare X_inference
+        encoder = OneHotEncoder(drop = 'first', sparse=False, handle_unknown='ignore')
+        #encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+        encoder.fit(features_sdf[['season']])  # Only fit on training data
+        encoded_feature = encoder.transform(features_sdf[['season']])
+        encoded_f = pd.DataFrame(encoded_feature, columns=encoder.get_feature_names_out(['season']), index=features_sdf.index)
+        features_sdf = pd.concat([features_sdf.drop(columns=['season']), encoded_f], axis=1)
         features_pdf = features_sdf.select_dtypes(include='number')
+        
         #features_pdf = features_sdf.drop(columns=['order_id', 'order_status']).values
         # apply transformer - standard scaler
         transformer_stdscaler = model_artefact["preprocessing_transformers"]["stdscaler"]
