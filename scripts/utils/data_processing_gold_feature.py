@@ -92,7 +92,7 @@ def process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logi
         .otherwise("Autumn")
     )
     print(f"After adding date columns: {df.count()} rows")
-      # join concentration_df
+    # join concentration_df
     df = df.withColumn("snapshot_date", F.lit(snapshot_date_str))
     df = df.join(concentration_df, on='snapshot_date', how='left')
     

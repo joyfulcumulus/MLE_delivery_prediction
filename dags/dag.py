@@ -16,8 +16,8 @@ with DAG(
     default_args=default_args,
     description='Delivery lateness prediction pipeline',
     schedule_interval='0 9 * * *',  # At 09:00 AM on daily    
-    start_date=datetime(2016, 9, 4), #min date
-    end_date=datetime(2018, 10, 17), # Only run for dates that have data available
+    start_date=datetime(2016, 12, 4), #min date
+    end_date=datetime(2016, 12, 8), # Only run for dates that have data available
     catchup=True,
     max_active_runs=1 # ensures no parallel processing. Will execute all steps for day 1 first, then move to day 2
 ) as dag:
@@ -50,18 +50,18 @@ with DAG(
     # )  
     # silver_store_completed = DummyOperator(task_id="silver_store_completed")  
 
-    ###########################
-    #Label Store
-    ###########################
-    gold_label_store = BashOperator(
-        task_id='run_gold_label_feature_store',
-        bash_command=(
-            'cd /opt/airflow/scripts && '
-            'python3 gold_label_store.py '
-            '--startdate "{{ ds }}" '
-        ),
-    )
-    label_store_completed = DummyOperator(task_id="label_store_completed")
+    # ###########################
+    # #Label Store
+    # ###########################
+    # gold_label_store = BashOperator(
+    #     task_id='run_gold_label_feature_store',
+    #     bash_command=(
+    #         'cd /opt/airflow/scripts && '
+    #         'python3 gold_label_store.py '
+    #         '--startdate "{{ ds }}" '
+    #     ),
+    # )
+    # label_store_completed = DummyOperator(task_id="label_store_completed")
 
     # ###########################
     # #Feature Store
@@ -74,14 +74,13 @@ with DAG(
             '--startdate "{{ ds }}" '
         ),
     )
-    feature_store_completed = DummyOperator(task_id="feature_store_completed")
+    # feature_store_completed = DummyOperator(task_id="feature_store_completed")
 
     # # Define task dependencies to run scripts sequentially
     # bronze_store_start >> bronze_store_run >> bronze_store_completed
     # bronze_store_completed >> silver_store_run >> silver_store_completed
     # silver_store_completed >> gold_label_store >> label_store_completed
     # silver_store_completed >> gold_feature_store >> feature_store_completed
-    gold_label_store >> label_store_completed >> gold_feature_store >> feature_store_completed
 
     # ###########################
     # #Model Inference
