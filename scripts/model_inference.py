@@ -12,11 +12,6 @@ from functools import reduce
 from sklearn.preprocessing import OneHotEncoder
 
 
-import pyspark.sql.functions as F
-
-from pyspark.sql.functions import col
-
-
 # to call this script: python model_train.py --snapshotdate "2024-09-01"
 
 def main(snapshotdate, modelname):
@@ -47,13 +42,10 @@ def main(snapshotdate, modelname):
     
     # Filter out NA
     features_store_sdf = features_store_sdf.drop("snapshot_date","avg_delay_rate","concentration","act_days_to_deliver","total_freight_value","avg_processing_time","same_state","total_volume_cm3","seller_city","seller_state")
-    rows_with_nulls = features_store_sdf.filter(
-        reduce(lambda a, b: a | b, (col(c).isNull() for c in features_store_sdf.columns))
-    )
-    order_ids_to_drop = [row["order_id"] for row in rows_with_nulls.select("order_id").distinct().collect()]
-    features_store_sdf = features_store_sdf.filter(~col("order_id").isin(order_ids_to_drop))
-    features_store_sdf = features_store_sdf.filter(col("order_status") == "delivered")
     features_sdf = features_store_sdf.toPandas()
+    features_sdf = features_sdf.dropna(how='any')
+    features_store_sdf = features_store_sdf[features_store_sdf["order_status"] == "delivered"]
+    
     print("extracted features_sdf", features_sdf.count(), config["snapshot_date"])
     
     if features_sdf.empty:
@@ -62,11 +54,15 @@ def main(snapshotdate, modelname):
     else: 
         # prepare X_inference
         encoder = OneHotEncoder(drop = 'first', sparse=False, handle_unknown='ignore')
-        #encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+        #encoder = OneHotEncoder(drop = 'first', sparse_output=False, handle_unknown='ignore')
         encoder.fit(features_sdf[['season']])  # Only fit on training data
         encoded_feature = encoder.transform(features_sdf[['season']])
         encoded_f = pd.DataFrame(encoded_feature, columns=encoder.get_feature_names_out(['season']), index=features_sdf.index)
         features_sdf = pd.concat([features_sdf.drop(columns=['season']), encoded_f], axis=1)
+        expected_columns = ['season_Spring', 'season_Summer', 'season_Winter']
+        for col in expected_columns:
+            if col not in features_sdf.columns:
+                features_sdf[col] = 0
         features_pdf = features_sdf.select_dtypes(include='number')
         
         #features_pdf = features_sdf.drop(columns=['order_id', 'order_status']).values

@@ -17,11 +17,11 @@ def monitoring(snapshotdate, model):
     #Import predictions
     snapshotdate_str = snapshotdate.replace('-', '_')
     if model == 'reg':
-        model_pred_loc = "datamart/gold/model_predictions/reg_2017_12_04/" #update
-        file_name = 'reg_2017_12_04_predictions_' + snapshotdate_str + '.parquet' #update
+        model_pred_loc = "datamart/gold/model_predictions/reg_2018_04_01/" #update
+        file_name = 'reg_2018_04_01_predictions_' + snapshotdate_str + '.parquet' #update
     else:
-        model_pred_loc = "datamart/gold/model_predictions/xgb_2017_12_04/" #update
-        file_name = 'xgb_2017_12_04_predictions_' + snapshotdate_str + '.parquet' #update
+        model_pred_loc = "datamart/gold/model_predictions/xgb_2018_04_01/" #update
+        file_name = 'xgb_2018_04_01_predictions_' + snapshotdate_str + '.parquet' #update
 
     file_path = os.path.join(model_pred_loc, file_name)
     model_pred_list = spark.read.option("header", "true").parquet(file_path)

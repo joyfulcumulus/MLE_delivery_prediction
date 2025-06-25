@@ -1,0 +1,2 @@
+order_id,customer_id,order_status,order_purchase_timestamp,order_approved_at,order_delivered_carrier_date,order_delivered_customer_date,order_estimated_delivery_date,snapshot_date
+bfbd0f9bdef84302105ad712db648a6c,86dc2ffce2dfff336de2f386a786e574,delivered,2016-09-15T12:16:38.000Z,2016-09-15T12:16:38.000Z,2016-11-07T17:11:53.000Z,2016-11-09T07:47:38.000Z,2016-10-04T00:00:00.000Z,2016_09_15
