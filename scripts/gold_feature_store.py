@@ -66,7 +66,7 @@ def read_silver_table(table, silver_directory, spark, date_str=None):
     df = spark.read.option("header", "true").parquet(*files_list)
     return df
 
-if name == "main":
+if __name__ == "__main__":
     # Initialize SparkSession
     spark = pyspark.sql.SparkSession.builder \
         .appName("dev") \
