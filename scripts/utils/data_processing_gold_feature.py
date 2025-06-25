@@ -68,6 +68,9 @@ def process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logi
     df = df.drop('customer_id', 'product_id', 'seller_id', 'date', 'month')
     df = df.dropDuplicates(['order_id'])
     
+    # Convert snapshot_date to string type
+    df = df.withColumn("snapshot_date", df["snapshot_date"].cast(StringType()))
+    
     # Save gold table - output only for the given snapshot date
     partition_name = f"{snapshot_date_str.replace('-','_')}.parquet"
     filepath = os.path.join(gold_directory + "/feature_store/" + partition_name)
