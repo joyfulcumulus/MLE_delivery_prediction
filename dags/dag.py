@@ -16,14 +16,14 @@ with DAG(
     default_args=default_args,
     description='Delivery lateness prediction pipeline',
     schedule_interval='0 9 * * *',  # At 09:00 AM on daily    
-    start_date=datetime(2016, 9, 4), #min date
-    end_date=datetime(2018, 10, 17), # Only run for dates that have data available
+    start_date=datetime(2016, 12, 4), #min date
+    end_date=datetime(2016, 12, 8), # Only run for dates that have data available
     catchup=True,
     max_active_runs=1 # ensures no parallel processing. Will execute all steps for day 1 first, then move to day 2
 ) as dag:
 
     # ###########################
-    # #Data Processing
+    # #Data Processings
     # ###########################
     # bronze_store_start = DummyOperator(task_id="bronze_store_start")
 
