@@ -15,7 +15,7 @@ def process_silver_olist_customers(bronze_directory, silver_directory, spark):
     partition_name = "bronze_olist_customers.parquet"
     filepath = bronze_directory + partition_name
     df = spark.read.parquet(filepath)
-    print('loaded from:', filepath, 'row count:', df.count())
+    print('🔴🔴🔴🔴loaded from:', filepath, 'row count:', df.count())
 
     # clean data: enforce schema / data type
     # Dictionary specifying columns and their desired datatypes
@@ -46,6 +46,7 @@ def process_silver_olist_customers(bronze_directory, silver_directory, spark):
     partition_name = "silver_olist_customers.parquet"
     filepath = silver_directory + partition_name
     df.write.mode("overwrite").parquet(filepath)
+    print('🟢🟢🟢 saved df count:',df.count())
     print('saved to:', filepath)
     
     return df
@@ -56,7 +57,7 @@ def process_silver_olist_sellers(bronze_directory, silver_directory, spark):
     partition_name = "bronze_olist_sellers.parquet"
     filepath = bronze_directory + partition_name
     df = spark.read.parquet(filepath)
-    print('loaded from:', filepath, 'row count:', df.count())
+    print('🔴🔴🔴🔴loaded from:', filepath, 'row count:', df.count())
 
     # clean data: enforce schema / data type
     # Dictionary specifying columns and their desired datatypes
@@ -86,6 +87,7 @@ def process_silver_olist_sellers(bronze_directory, silver_directory, spark):
     partition_name = "silver_olist_sellers.parquet"
     filepath = silver_directory + partition_name
     df.write.mode("overwrite").parquet(filepath)
+    print('🟢🟢🟢 saved df count:',df.count())
     print('saved to:', filepath)
     
     return df
@@ -96,7 +98,7 @@ def process_silver_olist_geolocation(bronze_directory, silver_directory, spark):
     partition_name = "bronze_olist_geolocation.parquet"
     filepath = bronze_directory + partition_name
     df = spark.read.parquet(filepath)
-    print('loaded from:', filepath, 'row count:', df.count())
+    print('🔴🔴🔴🔴loaded from:', filepath, 'row count:', df.count())
 
     # clean data: enforce schema / data type
     # Dictionary specifying columns and their desired datatypes
@@ -127,6 +129,7 @@ def process_silver_olist_geolocation(bronze_directory, silver_directory, spark):
     partition_name = "silver_olist_geolocation.parquet"
     filepath = silver_directory + partition_name
     df_dedupe.write.mode("overwrite").parquet(filepath)
+    print('🟢🟢🟢 saved df count:',df_dedupe.count())
     print('saved to:', filepath)
     
     return df_dedupe
@@ -137,7 +140,7 @@ def process_silver_olist_products(bronze_directory, silver_directory, spark):
     partition_name = "bronze_olist_products.parquet"
     filepath = bronze_directory + partition_name
     df = spark.read.parquet(filepath)
-    print('loaded from:', filepath, 'row count:', df.count())
+    print('🔴🔴🔴🔴loaded from:', filepath, 'row count:', df.count())
 
     # Rename columns due to spelling mistakes 
     df = df.withColumnRenamed("product_name_lenght", "product_name_length") \
@@ -206,6 +209,7 @@ def process_silver_olist_products(bronze_directory, silver_directory, spark):
     partition_name = "silver_olist_products.parquet"
     filepath = silver_directory + partition_name
     df.write.mode("overwrite").parquet(filepath)
+    print('🟢🟢🟢 saved df count:',df.count())
     print('saved to:', filepath)
     
     return df
@@ -216,7 +220,7 @@ def process_silver_olist_order_items(bronze_directory, silver_directory, spark):
     partition_name = "bronze_olist_order_items.parquet"
     filepath = bronze_directory + partition_name
     df = spark.read.parquet(filepath)
-    print('loaded from:', filepath, 'row count:', df.count())
+    print('🔴🔴🔴🔴loaded from:', filepath, 'row count:', df.count())
 
     
     # clean data: enforce schema / data type
@@ -265,6 +269,7 @@ def process_silver_olist_order_items(bronze_directory, silver_directory, spark):
     partition_name = "silver_olist_order_items.parquet"
     filepath = silver_directory + partition_name
     df.write.mode("overwrite").parquet(filepath)
+    print('🟢🟢🟢 saved df count:',df.count())
     print('saved to:', filepath)
     
     return df
@@ -282,8 +287,8 @@ def process_silver_olist_orders(bronze_directory, silver_directory, spark, date_
     
     # If file is found, proceed to read CSV
     df = spark.read.option("header", True).option("inferSchema", True).csv(filepath)
-    print('loaded from:', filepath, 'row count:', df.count())
-    print('🔴🔴🔴🔴🔴 Brozne orders table count: ',df.count())
+    print('🔴🔴🔴🔴loaded from:', filepath, 'row count:', df.count())
+    # print('🔴🔴🔴🔴🔴 Brozne orders table count: ',df.count())
     # Clean data: enforce schema / data type
     # Dictionary specifying columns and their desired datatypes
     column_type_map = {
@@ -377,6 +382,7 @@ def process_silver_olist_orders(bronze_directory, silver_directory, spark, date_
     parquet_name = f"silver_olist_orders_{date_formatted}.parquet"
     output_path = os.path.join(silver_directory, parquet_name)
     df.write.mode("overwrite").parquet(output_path)
+    print('🟢🟢🟢 saved df count:',df.count())
     print("-----> saved to:", output_path)
 
     return df
@@ -483,7 +489,7 @@ def process_silver_order_logistics(silver_directory,spark, date_str):
     # final_df_with_cats = final_df_with_cats.withColumn("snapshot_date", to_date(lit(snapshot_str), "dd_MM_yyyy"))
     final_df_with_cats = final_df_with_cats.withColumn("snapshot_date", to_date(lit(snapshot_str), "yyyy_MM_dd"))
     row_count = final_df_with_cats.count()
-
+    print('🟢🟢🟢 saved df count:',final_df_with_cats.count())
     print(f"---> ✅ Saved: {silver_directory}_{date_str} → {row_count}")
 
     return final_df_with_cats
@@ -587,7 +593,7 @@ def process_silver_shipping_infos(silver_directory, spark, date_str):
     df_final.write.mode("overwrite").parquet(filepath)
     print('saved to:', filepath)
     row_count = df_final.count()
-
+    print('🟢🟢🟢 saved df count:',df_final.count())
     print(f"---> ✅{row_count}")
     return df_final
 
@@ -648,6 +654,7 @@ def process_silver_delivery_history(silver_directory,spark, date_str):
     
     filepath = "datamart/silver/delivery_history/" + partition_name
     df_delivery.write.mode("overwrite").parquet(filepath)
+    print('🟢🟢🟢 saved df count:',df_delivery.count())
     print('saved to:', filepath)
     row_count = df_delivery.count()
 
@@ -667,7 +674,7 @@ def process_silver_seller_performance(bronze_directory, silver_directory, spark,
         return None
 
     df_reviews = (spark.read.parquet(reviews_path).withColumn("review_score_f", F.col("review_score").cast(DoubleType())))
-    print(f"loaded reviews: {df_reviews.count()} rows")
+    print(f"🔴🔴🔴🔴loaded reviews: {df_reviews.count()} rows")
 
     # items (silver)
     items_path = os.path.join(silver_directory,"order_items","silver_olist_order_items.parquet")
@@ -676,7 +683,7 @@ def process_silver_seller_performance(bronze_directory, silver_directory, spark,
         return None
 
     df_items = (spark.read.parquet(items_path).select("order_id", "seller_id"))
-    print(f"loaded items: {df_items.count()} rows")
+    print(f"🔴🔴🔴🔴loaded items: {df_items.count()} rows")
 
     # delivery history (silver)
     delivery_dir = os.path.join(silver_directory, "delivery_history")
@@ -813,6 +820,7 @@ def process_silver_seller_performance(bronze_directory, silver_directory, spark,
     out_partition = f"silver_seller_performance_{date_formatted}.parquet"
     out_path      = os.path.join(silver_directory, "seller_performance", out_partition)
     df_performance.write.mode("overwrite").parquet(out_path)
+    print('🟢🟢🟢 saved df count:',df_performance.count())
     print('saved to:', out_path)
 
     return df_performance
@@ -833,7 +841,7 @@ def process_silver_concentration(silver_directory, spark, date_str):
 
     # read the shipping infos
     shipping_info_df = spark.read.parquet(filepath)
-    print('loaded from:', filepath, 'row count:', shipping_info_df.count())
+    print('🔴🔴🔴🔴loaded from:', filepath, 'row count:', shipping_info_df.count())
     
     # Define combinations for each region
     combos = [
@@ -877,6 +885,7 @@ def process_silver_concentration(silver_directory, spark, date_str):
     out_partition = f"silver_concentration_{date_formatted}.parquet"
     out_path      = os.path.join(silver_directory, "concentration", out_partition)
     final_concentration_df.write.mode("overwrite").parquet(out_path)
+    print('🟢🟢🟢 saved df count:',final_concentration_df.count())
     print('saved to:', out_path)
     
     return final_concentration_df

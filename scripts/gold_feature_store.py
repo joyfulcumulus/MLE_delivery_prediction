@@ -66,7 +66,7 @@ def read_silver_table(table, silver_directory, spark, date_str=None):
     df = spark.read.option("header", "true").parquet(*files_list)
     return df
 
-if __name__ == "__main__":
+if name == "main":
     # Initialize SparkSession
     spark = pyspark.sql.SparkSession.builder \
         .appName("dev") \
@@ -87,46 +87,3 @@ if __name__ == "__main__":
     # GOLD
     ############################
     print("Building gold feature tables...")
-
-    # Define paths
-    silver_directory = "datamart/silver"
-    gold_directory = "datamart/gold"
-    os.makedirs(gold_directory, exist_ok=True)
-    print(f"Gold root directory: {gold_directory}")
-
-    gold_feature_directory = "datamart/gold/feature_store/"
-    if not os.path.exists(gold_feature_directory):
-        os.makedirs(gold_feature_directory)
-
-    
-    try:
-        orders_df = read_silver_table('orders', silver_directory, spark, date_str=snapshot_date_str)
-    except FileNotFoundError:
-        print(f"Gold feature tables built successfully from start date: {snapshot_date_str}")
-        exit(0)
-    
-    items_df = read_silver_table('order_items', silver_directory, spark)
-    logistic_df = read_silver_table('order_logistics', silver_directory, spark, date_str=snapshot_date_str)
-    orders_df = read_silver_table('orders', silver_directory, spark, date_str=snapshot_date_str)
-    shipping_df = read_silver_table('shipping_infos', silver_directory, spark, date_str=snapshot_date_str)
-    history_df = read_silver_table('delivery_history', silver_directory, spark, date_str=snapshot_date_str)
-    seller_perform_df = read_silver_table('seller_performance', silver_directory, spark, date_str=snapshot_date_str)
-    concentration_df = read_silver_table('concentration', silver_directory, spark)
-    
-        
-    # Build gold tables
-    y = process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logistic_df, 
-                               orders_df, shipping_df, history_df, seller_perform_df, concentration_df,spark)
-
-    # Check for the rows ingested
-    y_pdf = y.toPandas()
-    y_count = y_pdf.shape[0]
-    print(f"Number of rows in feature store: {y_pdf.shape[0]}")
-
-    print(f"Gold feature tables built successfully from start date: {snapshot_date_str}")
-
-
-
-
-
-

@@ -36,7 +36,7 @@ from utils import data_processing_bronze_table as bronze_processing
 
 # ---------------------------------------------------------------------------
 def main(target_date_str: str):
-    print("\n\n--- starting bronze job for", target_date_str, "---")
+    print("\n\n🔵🔵🔵--- starting bronze job for", target_date_str, "---🔵🔵🔵")
 
     # 1. SparkSession --------------------------------------------------------
     spark: SparkSession = (
@@ -69,7 +69,7 @@ def main(target_date_str: str):
             target_date_str=target_date_str
         )
 
-        print("\n\n--- completed bronze job ---\n")
+        print("\n\n🔵🔵🔵--- completed bronze job ---🔵🔵🔵\n")
     finally:
         spark.stop()
         print("Spark session stopped.\n")
