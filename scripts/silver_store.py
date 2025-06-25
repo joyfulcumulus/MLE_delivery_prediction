@@ -12,7 +12,7 @@ from pyspark.sql.types import StringType, IntegerType, FloatType, DateType
 import utils.data_processing_silver_table as silver_processing
 
 if __name__ == "__main__":
-    print('\n\n---starting job---\n\n')
+    print('\n\n🔵🔵🔵---starting job---🔵🔵🔵\n\n')
     
     # Setup argparse to parse command-line arguments
     parser = argparse.ArgumentParser(description='Process snapshot date from Airflow for silver tables')
@@ -97,24 +97,34 @@ if __name__ == "__main__":
         # Process bronze tables into silver
         # Due to dependencies in orders table validation checks, customers, sellers, order_items processed first 
         # For tables with no partition (due to small size), meaningless to pass in snapshot_date_str, every day will overwrite with latest info
-        print("\nCreating Silver Tables")
+        print("\n🟡🟡🟡Creating Silver Tables🟡🟡🟡")
         silver_processing.process_silver_olist_customers("datamart/bronze/customers/",silver_cust_directory, spark)
+        print("\n")
         silver_processing.process_silver_olist_sellers("datamart/bronze/sellers/",silver_sell_directory, spark)
+        print("\n")
         silver_processing.process_silver_olist_geolocation("datamart/bronze/geolocation/",silver_geo_directory, spark)
+        print("\n")
         silver_processing.process_silver_olist_products("datamart/bronze/products/",silver_prod_directory, spark)
+        print("\n")
         silver_processing.process_silver_olist_order_items("datamart/bronze/order_items/",silver_order_items_directory, spark)
+        print("\n")
         silver_processing.process_silver_olist_orders("datamart/bronze/orders/",silver_orders_directory, spark, date_str=snapshot_date_str)
+        print("\n")
         
-        # print("\nCreating Derived Silver Tables")
-        # silver_processing.process_silver_shipping_infos(silver_shipping_infos_directory, spark, date_str=snapshot_date_str)
-        # silver_processing.process_silver_order_logistics(silver_order_logistics_directory, spark, date_str=snapshot_date_str)
-        # silver_processing.process_silver_delivery_history(silver_delivery_history_directory, spark, date_str=snapshot_date_str)
+        print("\n🟡🟡🟡Creating Derived Silver Tables🟡🟡🟡")
+        silver_processing.process_silver_shipping_infos(silver_shipping_infos_directory, spark, date_str=snapshot_date_str)
+        print("\n")
+        silver_processing.process_silver_order_logistics(silver_order_logistics_directory, spark, date_str=snapshot_date_str)
+        print("\n")
+        silver_processing.process_silver_delivery_history(silver_delivery_history_directory, spark, date_str=snapshot_date_str)
+        print("\n")
 
         # # Derived Silver Tables that are dependent on other Derived Silver Tables
         silver_processing.process_silver_seller_performance(bronze_root, silver_root, spark, date_str=snapshot_date_str)
+        print("\n")
         silver_processing.process_silver_concentration(silver_root, spark, date_str=snapshot_date_str)
 
-        print('\n\n---completed job---\n\n')
+        print('\n\n🔵🔵🔵---completed job---🔵🔵🔵\n\n')
 
     finally:
         if spark is not None:

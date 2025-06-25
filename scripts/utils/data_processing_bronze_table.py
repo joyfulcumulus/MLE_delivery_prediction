@@ -24,7 +24,7 @@ def _read_write_bronze(csv_path: str,
     cleans up extra files, and returns the DataFrame.
     """
     df = spark.read.option("header", True).csv(csv_path)
-    print(f"loaded {csv_path}  →  {df.count():,d} rows")
+    print(f"🔴🔴loaded {csv_path}  →  {df.count():,d} rows🔴🔴")
 
     os.makedirs(out_dir, exist_ok=True)
     out_path = os.path.join(out_dir, f"{out_name}.parquet")
@@ -33,7 +33,8 @@ def _read_write_bronze(csv_path: str,
     (df.write
        .mode("overwrite")
        .parquet(out_path))
-    print("----> saved bronze:", out_path)
+    print('🟢🟢🟢 saved df count:',df.count())
+    print("🟢🟢🟢🟢----> saved bronze:", out_path,'🟢🟢🟢🟢🟢\n')
     
     # Clean up extra files (_SUCCESS and .crc files)
     for file in glob.glob(os.path.join(out_path, "_SUCCESS")):
@@ -78,7 +79,7 @@ def process_olist_order_items_bronze(bronze_root: str, spark):
 
 def process_olist_orders_bronze(bronze_root, spark, target_date_str):
 
-
+    print(f"\n:🔴🔴🔴🔴 STARTING ORDERS TABLE 🔴🔴🔴🔴")
     formatted = target_date_str.replace("-", "_")
     date_formatted= formatted
     print("date input NOW", date_formatted)
@@ -102,7 +103,7 @@ def process_olist_orders_bronze(bronze_root, spark, target_date_str):
 
     # Read source data
     df = spark.read.csv("data/olist_orders_dataset.csv", header=True, inferSchema=True)
-    
+    print(f":🔴🔴🔴🔴Orders FULL shape: {df.count()} rows🔴🔴🔴🔴")
     # Convert timestamp and create snapshot_date as yyyy_mm_dd string
     df = df.withColumn("order_purchase_timestamp", col("order_purchase_timestamp").cast("timestamp"))
     df = df.withColumn("snapshot_date", date_format(col("order_purchase_timestamp"), "yyyy_MM_dd"))
@@ -145,11 +146,11 @@ def process_olist_orders_bronze(bronze_root, spark, target_date_str):
     shutil.rmtree(temp_dir)
     
     # Print status
-    count = daily_df.count()
-    print(f"Day {date_formatted}: {count} rows")
+    print('🟢🟢🟢 saved df count:',daily_df.count())
+    print(f":🟢🟢🟢🟢🟢Day {date_formatted}: {daily_df.count()} rows🟢🟢🟢🟢🟢")
     print(f"----------> Saved to: {final_filepath}")
     
-    return df
+    return daily_df
 
 
 
