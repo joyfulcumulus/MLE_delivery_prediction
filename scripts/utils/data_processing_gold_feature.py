@@ -103,7 +103,7 @@ def process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logi
         df = df.drop(*existing_columns_to_drop)
     
     print(f"After joining concentration_df: {df.count()} rows")    # drop unused columns
-    columns_to_drop = ['customer_id', 'product_id', 'seller_id', 'date', 'month', 'snapshot_date']
+    columns_to_drop = ['customer_id', 'product_id', 'seller_id', 'date', 'month']
     existing_columns_to_drop = [col for col in columns_to_drop if col in df.columns]
     if existing_columns_to_drop:
         df = df.drop(*existing_columns_to_drop)
