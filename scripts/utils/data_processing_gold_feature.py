@@ -66,6 +66,7 @@ def process_feature_gold_table(snapshot_date_str, gold_directory, items_df, logi
 
     # drop unused columns
     df = df.drop('customer_id', 'product_id', 'seller_id', 'date', 'month')
+    df = df.dropDuplicates(['order_id'])
     
     # Save gold table - output only for the given snapshot date
     partition_name = f"{snapshot_date_str.replace('-','_')}.parquet"
