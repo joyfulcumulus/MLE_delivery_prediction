@@ -53,8 +53,8 @@ def main(snapshotdate, modelname):
         print('y_inference', y_inference_pdf.shape[0])
     else: 
         # prepare X_inference
-        encoder = OneHotEncoder(drop = 'first', sparse=False, handle_unknown='ignore')
-        #encoder = OneHotEncoder(drop = 'first', sparse_output=False, handle_unknown='ignore')
+        # encoder = OneHotEncoder(drop = 'first', sparse=False, handle_unknown='ignore')
+        encoder = OneHotEncoder(drop = 'first', sparse_output=False, handle_unknown='ignore')
         encoder.fit(features_sdf[['season']])  # Only fit on training data
         encoded_feature = encoder.transform(features_sdf[['season']])
         encoded_f = pd.DataFrame(encoded_feature, columns=encoder.get_feature_names_out(['season']), index=features_sdf.index)
