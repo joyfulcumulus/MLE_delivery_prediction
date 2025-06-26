@@ -16,8 +16,8 @@ with DAG(
     default_args=default_args,
     description='Delivery lateness prediction pipeline',
     schedule_interval='0 9 * * *',  # At 09:00 AM on daily    
-    start_date=datetime(2016, 9, 10), #min date
-    end_date=datetime(2016, 9, 20), # Only run for dates that have data available
+    start_date=datetime(2017, 6, 1), #min date
+    end_date=datetime(2017, 6, 10), # Only run for dates that have data available
     catchup=True,
     max_active_runs=1 # ensures no parallel processing. Will execute all steps for day 1 first, then move to day 2
 ) as dag:
