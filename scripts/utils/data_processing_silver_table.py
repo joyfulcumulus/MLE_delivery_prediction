@@ -240,7 +240,7 @@ def process_silver_olist_order_items(bronze_directory, silver_directory, spark):
 
     
     # Checking for invalid seller IDs
-    # Load df_sellers from SILVER <<<<<<----------------------------------<<<<<<<<<<<<<
+    # Load df_sellers from SILVER Table
     df_sellers = spark.read.parquet("datamart/silver/sellers/silver_olist_sellers.parquet")  
 
     # Get distinct valid seller IDs
@@ -274,21 +274,21 @@ def process_silver_olist_order_items(bronze_directory, silver_directory, spark):
     
     return df
 
-def process_silver_olist_orders(bronze_directory, silver_directory, spark, date_str): # date_str replaces partition_name
+def process_silver_olist_orders(bronze_directory, silver_directory, spark, date_str): 
     # Read bronze order table of specific date_str
-    date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") # Convert "YYYY-MM-DD" from airflow to "YYYY_MM_DD"
+    date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") 
     partition_name = f"bronze_olist_orders_{date_formatted}.csv"
     filepath = os.path.join(bronze_directory, partition_name)
 
     # Check if file exists
     if not os.path.exists(filepath):
         print(f"[SKIP] No orders csv found for date: {date_formatted}")
-        return None  # Early return
+        return None  
     
     # If file is found, proceed to read CSV
     df = spark.read.option("header", True).option("inferSchema", True).csv(filepath)
     print('🔴🔴🔴🔴loaded from:', filepath, 'row count:', df.count())
-    # print('🔴🔴🔴🔴🔴 Brozne orders table count: ',df.count())
+    
     # Clean data: enforce schema / data type
     # Dictionary specifying columns and their desired datatypes
     column_type_map = {
@@ -364,7 +364,7 @@ def process_silver_olist_orders(bronze_directory, silver_directory, spark, date_
     # Clean and standardize the `order_status` column
     df = df.withColumn("order_status", trim(lower(col("order_status"))))
     
-    # dentify invalid statuses (those NOT in the valid_statuses set)
+    # Identify invalid statuses (those NOT in the valid_statuses set)
     invalid_statuses_df = df.filter(~col("order_status").isin(list(valid_statuses)))
     
     # Print the unique invalid statuses
@@ -378,6 +378,7 @@ def process_silver_olist_orders(bronze_directory, silver_directory, spark, date_
     # Adding snapshot date column
     df = df.withColumn("snapshot_date", to_date(lit(date_formatted), "yyyy_MM_dd"))
     print('🔴🔴🔴🔴🔴df_order table count: ',df.count())
+
     # save 
     parquet_name = f"silver_olist_orders_{date_formatted}.parquet"
     output_path = os.path.join(silver_directory, parquet_name)
@@ -392,30 +393,24 @@ def process_silver_olist_orders(bronze_directory, silver_directory, spark, date_
 
 
 def process_silver_order_logistics(silver_directory,spark, date_str):
+
     # Read bronze order table of specific date_str
-    date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") # Convert "YYYY-MM-DD" from airflow to "YYYY_MM_DD"
+    date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") 
     order_file_path = f"datamart/silver/orders/silver_olist_orders_{date_formatted}.parquet"
     
-    # print('order_file_path:', order_file_path)
-    # filepath = os.path.join(silver_directory, order_file_path)
     
     # Check if file exists
     if not os.path.exists(order_file_path):
         print(f"[SKIP] No orders csv found for date: {date_formatted}")
         return None  # Early return
     
-    # If file is found, proceed to read CSV
-    
-    
+    # If file is found, proceed to read pqrquet
     
     # Read inputs
     df_orders = spark.read.parquet(order_file_path)
     print('🔴🔴🔴🔴df_order table count: ',df_orders.count())
     df_order_items = spark.read.parquet("datamart/silver/order_items/silver_olist_order_items.parquet")
     df_products = spark.read.parquet("datamart/silver/products/silver_olist_products.parquet")
-    # df_categories = spark.read.parquet("datamart/bronze/category_translation/bronze_product_category_translation.parquet")
-    
-
     
     order_metrics = df_order_items.groupBy("order_id").agg(
         F.max("order_item_id").alias("total_qty"),
@@ -460,10 +455,10 @@ def process_silver_order_logistics(silver_directory,spark, date_str):
     df_items_with_cats = df_order_items.select("order_id", "product_id") \
         .join(df_products.select("product_id", "product_category_name_english", "main_category", "sub_category"), on="product_id", how="left")
     
-    # print('checkpoint 1')
+    
     main_cat_counts = df_items_with_cats.groupBy("order_id", "main_category") \
         .agg(count("*").alias("main_cat_count"))
-    # print('checkpoint 2')
+    
     main_cat_window = Window.partitionBy("order_id").orderBy(col("main_cat_count").desc())
     
     most_common_main = main_cat_counts.withColumn(
@@ -486,14 +481,10 @@ def process_silver_order_logistics(silver_directory,spark, date_str):
     
     snapshot_str = partition_name.replace("datamart/silver/orders/silver_olist_orders_", "").replace(".parquet", "")
     
-    # final_df_with_cats = final_df_with_cats.withColumn("snapshot_date", to_date(lit(snapshot_str), "dd_MM_yyyy"))
     final_df_with_cats = final_df_with_cats.withColumn("snapshot_date", to_date(lit(snapshot_str), "yyyy_MM_dd"))
     row_count = final_df_with_cats.count()
 
     df_final = final_df_with_cats
-
-    # print('🟢🟢🟢 saved df count:',final_df_with_cats.count())
-    # print(f"---> ✅ Saved: {silver_directory}_{date_str} → {row_count}")
 
 
     # save silver table - IRL connect to database to write
@@ -501,9 +492,6 @@ def process_silver_order_logistics(silver_directory,spark, date_str):
     partition_name = "silver_olist_order_logistics_" + year_month + '.parquet'
     
     filepath = "datamart/silver/order_logistics/" + partition_name
-
-    print(' 🟧 🟧 🟧 filepath:', filepath)
-    # silver_olist_order_logistics_2018_08_25.parquet
 
     df_final.write.mode("overwrite").parquet(filepath)
     print('saved to:', filepath)
@@ -516,23 +504,19 @@ def process_silver_order_logistics(silver_directory,spark, date_str):
 def process_silver_shipping_infos(silver_directory, spark, date_str):
 
     # Read bronze order table of specific date_str
-    date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") # Convert "YYYY-MM-DD" from airflow to "YYYY_MM_DD"
+    date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") 
     order_file_path = f"datamart/silver/orders/silver_olist_orders_{date_formatted}.parquet"
-    # print('order_file_path:', order_file_path)
-    # filepath = os.path.join(silver_directory, order_file_path)
     
     # Check if file exists
     if not os.path.exists(order_file_path):
         print(f"[SKIP] No orders csv found for date: {date_formatted}")
         return None  # Early return
     
-    # If file is found, proceed to read CSV
+    # If file is found, proceed to read parquet
     
-    
-    # print('1')
     # Read all required data
     df_orders = spark.read.parquet(order_file_path)
-    # print('2')
+    
     print('🔴🔴🔴df_order table count: ',df_orders.count())
     df_sellers = spark.read.parquet("datamart/silver/sellers/silver_olist_sellers.parquet")
     df_customers = spark.read.parquet("datamart/silver/customers/silver_olist_customers.parquet")
@@ -617,23 +601,23 @@ def process_silver_shipping_infos(silver_directory, spark, date_str):
     return df_final
 
 def process_silver_delivery_history(silver_directory,spark, date_str):
+
     # Read bronze order table of specific date_str
-    date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") # Convert "YYYY-MM-DD" from airflow to "YYYY_MM_DD"
+    date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") 
     order_file_path = f"datamart/silver/orders/silver_olist_orders_{date_formatted}.parquet"
-    # print('order_file_path:', order_file_path)
-    # filepath = os.path.join(silver_directory, order_file_path)
     
     # Check if file exists
     if not os.path.exists(order_file_path):
         print(f"[SKIP] No orders csv found for date: {date_formatted}")
-        return None  # Early return
+        return None  
     
-    # If file is found, proceed to read CSV
+    # If file is found, proceed to read parquet
 
 
     # Read all required data
     df_orders = spark.read.parquet(order_file_path)
     print('🔴🔴🔴🔴df_order table count: ',df_orders.count())
+
     # Add computed columns. Note, datediff will return null if fone of the timestamps is null (i.e. not available)
     df_delivery = df_orders.select(
         "order_id",
@@ -683,7 +667,7 @@ def process_silver_delivery_history(silver_directory,spark, date_str):
 
 def process_silver_seller_performance(bronze_directory, silver_directory, spark, date_str):
     date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d")
-    target_date   = date_str  # YYYY-MM-DD 
+    target_date   = date_str  
 
     # reviews (bronze table)
     reviews_path = os.path.join(bronze_directory,"order_reviews","bronze_olist_order_reviews.parquet")
@@ -846,6 +830,7 @@ def process_silver_seller_performance(bronze_directory, silver_directory, spark,
 
 
 def process_silver_concentration(silver_directory, spark, date_str):
+
     # Convert "YYYY-MM-DD" to "YYYY_MM_DD"
     date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d")
 
@@ -856,7 +841,7 @@ def process_silver_concentration(silver_directory, spark, date_str):
     # Check if file exists
     if not os.path.exists(filepath):
         print(f"[SKIP] No shipping infos parquet found for date: {date_formatted}")
-        return None  # Early return
+        return None  
 
     # read the shipping infos
     shipping_info_df = spark.read.parquet(filepath)

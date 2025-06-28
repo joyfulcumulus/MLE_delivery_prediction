@@ -53,7 +53,7 @@ def main(target_date_str: str):
         print("Bronze root:", bronze_root)
 
         # 3. Run all non-order tables ---------------------------------------
-        print("\nProcessing Olist raw data …")
+        print("\n 🟡🟡🟡Processing Olist raw data … 🟡🟡🟡\n")
         bronze_processing.process_olist_customers_bronze(bronze_root, spark)
         bronze_processing.process_olist_geolocation_bronze(bronze_root, spark)
         bronze_processing.process_olist_order_items_bronze(bronze_root, spark)

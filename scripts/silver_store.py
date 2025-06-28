@@ -97,7 +97,7 @@ if __name__ == "__main__":
         # Process bronze tables into silver
         # Due to dependencies in orders table validation checks, customers, sellers, order_items processed first 
         # For tables with no partition (due to small size), meaningless to pass in snapshot_date_str, every day will overwrite with latest info
-        print("\n🟡🟡🟡Creating Silver Tables🟡🟡🟡")
+        print("\n🟡🟡🟡Creating Silver Tables🟡🟡🟡\n")
         silver_processing.process_silver_olist_customers("datamart/bronze/customers/",silver_cust_directory, spark)
         print("\n")
         silver_processing.process_silver_olist_sellers("datamart/bronze/sellers/",silver_sell_directory, spark)
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         silver_processing.process_silver_olist_orders("datamart/bronze/orders/",silver_orders_directory, spark, date_str=snapshot_date_str)
         print("\n")
         
-        print("\n🟡🟡🟡Creating Derived Silver Tables🟡🟡🟡")
+        print("\n🟡🟡🟡Creating Derived Silver Tables🟡🟡🟡\n")
         silver_processing.process_silver_shipping_infos(silver_shipping_infos_directory, spark, date_str=snapshot_date_str)
         print("\n")
         silver_processing.process_silver_order_logistics(silver_order_logistics_directory, spark, date_str=snapshot_date_str)
