@@ -34,7 +34,7 @@ def _read_write_bronze(csv_path: str,
        .mode("overwrite")
        .parquet(out_path))
     print('🟢🟢🟢 saved df count:',df.count())
-    print("🟢🟢🟢🟢----> saved bronze:", out_path,'🟢🟢🟢🟢🟢\n')
+    print("🟢🟢🟢🟢----> saved bronze:", out_path,'🟢🟢🟢🟢\n')
     
     # Clean up extra files (_SUCCESS and .crc files)
     for file in glob.glob(os.path.join(out_path, "_SUCCESS")):
@@ -79,38 +79,19 @@ def process_olist_order_items_bronze(bronze_root: str, spark):
 
 def process_olist_orders_bronze(bronze_root, spark, target_date_str):
 
-    print(f"\n:🔴🔴🔴🔴 STARTING ORDERS TABLE 🔴🔴🔴🔴")
     formatted = target_date_str.replace("-", "_")
     date_formatted= formatted
     print("date input NOW", date_formatted)
 
-    # # Read bronze order table of specific date_str
-    # # date_formatted = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y_%m_%d") # Convert "YYYY-MM-DD" from airflow to "YYYY_MM_DD"
-    # partition_name = f"bronze_olist_orders_{date_formatted}.csv"
-    # filepath = os.path.join(bronze_directory, partition_name)
-
-    # # Check if file exists
-    # if not os.path.exists(filepath):
-    #     print(f"[SKIP] No orders csv found for date: {date_formatted}")
-    #     return None  # Early return
-    
-    # # If file is found, proceed to read CSV
-    # df = spark.read.option("header", True).option("inferSchema", True).csv(filepath)
-
-
-
-
-
     # Read source data
     df = spark.read.csv("data/olist_orders_dataset.csv", header=True, inferSchema=True)
-    print(f":🔴🔴🔴🔴Orders FULL shape: {df.count()} rows🔴🔴🔴🔴")
+
+    
+    
     # Convert timestamp and create snapshot_date as yyyy_mm_dd string
     df = df.withColumn("order_purchase_timestamp", col("order_purchase_timestamp").cast("timestamp"))
     df = df.withColumn("snapshot_date", date_format(col("order_purchase_timestamp"), "yyyy_MM_dd"))
     
-    # # Extract distinct days (as strings)
-    # days = df.select("snapshot_date").distinct().collect()
-    # day_list = [row.snapshot_date for row in days]
     
     # Create output directory
     output_path = os.path.join(bronze_root, "orders")
@@ -119,9 +100,11 @@ def process_olist_orders_bronze(bronze_root, spark, target_date_str):
     
     # Filter data for current day
     daily_df = df.filter(col("snapshot_date") == date_formatted)
+
+    print(f"🔴🔴loaded Orders Table  →  {daily_df.count():,d} rows🔴🔴")
     
     # Extract day, month, and year from the string
-    # day_part, month_part, year_part = day_str.split('_')
+    
     filename = f"bronze_olist_orders_{date_formatted}.csv"
     final_filepath = os.path.join(output_path, filename)
     
